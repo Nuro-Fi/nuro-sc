@@ -2,5 +2,29 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+remappings = []
+
+[fmt]
+line_length = 150
+tab_width = 4
+bracket_spacing = true
+int_types = "long"
+multiline_func_header = "all"
+quote_style = "double"
+number_underscore = "preserve"
+wrap_comments = false
+
+[rpc_endpoints]
+pol_mainnet = "${POL_MAINNET_RPC}"
+kaia_testnet = "${KAIA_TESTNET_RPC}"
+kaia_mainnet = "${KAIA_MAINNET_RPC}"
+base_mainnet = "${BASE_MAINNET_RPC}"
+base_testnet = "${BASE_TESTNET_RPC}"
+arb_mainnet = "${ARB_MAINNET_RPC}"
+moonbeam_mainnet = "${MOONBEAM_MAINNET_RPC}"
+moonbeam_testnet = "${MOONBEAM_TESTNET_RPC}"
+megaeth_testnet = "${MEGAETH_TESTNET_RPC}"
+eth_testnet = "${ETH_TESTNET_RPC}"
+
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
