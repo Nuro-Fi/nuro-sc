@@ -23,6 +23,9 @@ contract Pool_BorrowDebtCrossChain is Script, Helper, SelectRpc {
     uint32 public dstEid = BASE_TESTNET_EID; // Destination endpoint ID
     bytes32 public toAddress = bytes32(uint256(uint160(owner))); // Recipient address on destination chain
 
+    // Configurable address via environment variable
+    address public helperUtilsAddress = vm.envOr("HELPER_UTILS", address(0));
+
     function setUp() public {
         selectRpc();
     }
@@ -32,6 +35,7 @@ contract Pool_BorrowDebtCrossChain is Script, Helper, SelectRpc {
         require(borrowAmount > 0, "Borrow amount must be greater than 0");
         require(destinationChainId != 0, "Destination chain ID not set");
         require(dstEid != 0, "Destination endpoint ID not set");
+        require(helperUtilsAddress != address(0), "HELPER_UTILS env not set");
 
         ILendingPool pool = ILendingPool(lendingPool);
 
@@ -47,7 +51,7 @@ contract Pool_BorrowDebtCrossChain is Script, Helper, SelectRpc {
             sendParam: sendParam, fee: fee, amount: borrowAmount, chainId: BASE_TESTNET_CHAIN_ID, addExecutorLzReceiveOption: gasOption
         });
 
-        (uint256 nativeFee, uint256 lzTokenFee) = HelperUtils(KAIA_TESTNET_HELPER_UTILS).getFee(params, lendingPool, false);
+        (uint256 nativeFee, uint256 lzTokenFee) = HelperUtils(helperUtilsAddress).getFee(params, lendingPool, false);
 
         params.fee = MessagingFee({ nativeFee: nativeFee, lzTokenFee: lzTokenFee });
 

@@ -111,12 +111,12 @@ contract TokenDataStream is
     function latestRoundData(address _token) public view returns (uint80, uint256, uint256, uint256, uint80) {
         if (tokenPriceFeed[_token] == address(0)) revert TokenPriceFeedNotSet(_token);
         address _priceFeed = tokenPriceFeed[_token];
-        (uint80 idRound, int256 priceAnswer, uint256 updatedAt) = IPriceFeed(_priceFeed).latestRoundData();
+        (uint80 idRound, int256 priceAnswer, uint256 updatedAt, uint256 startedAt, uint80 answeredInRound) = IPriceFeed(_priceFeed).latestRoundData();
         if (block.timestamp - updatedAt > 3600) revert PriceStale(_token, _priceFeed, updatedAt);
         if (priceAnswer < 0) revert NegativePriceAnswer(priceAnswer);
 
         // forge-lint: disable-next-line(unsafe-typecast)
-        return (idRound, uint256(priceAnswer), 0, updatedAt, 0);
+        return (idRound, uint256(priceAnswer), startedAt, updatedAt, answeredInRound);
     }
 
     // =============================================================

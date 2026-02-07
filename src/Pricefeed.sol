@@ -14,6 +14,10 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  * @custom:security-contact security@nuro.finance
  */
 contract Pricefeed is Ownable {
+    // ============ Errors ============
+
+    error ZeroAddress();
+
     // ============ State Variables ============
 
     /// @notice Address of the token this price feed tracks
@@ -52,7 +56,10 @@ contract Pricefeed is Ownable {
      * @param _token Address of the token to track prices for
      */
     constructor(address _token) Ownable(msg.sender) {
+        if (_token == address(0)) revert ZeroAddress();
         token = _token;
+        startedAt = block.timestamp;
+        updatedAt = block.timestamp;
     }
 
     // ============ External Functions ============
@@ -68,7 +75,6 @@ contract Pricefeed is Ownable {
     function setPrice(int256 _price) public onlyOwner {
         roundId = 1;
         price = _price;
-        startedAt = block.timestamp;
         updatedAt = block.timestamp;
         answeredInRound = 1;
     }

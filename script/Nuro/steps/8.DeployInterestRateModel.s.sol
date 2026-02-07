@@ -14,7 +14,6 @@ contract DeployInterestRateModel is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployInterestRateModel --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployInterestRateModel --broadcast -vvv --verify
 // forge script DeployInterestRateModel --broadcast -vvv
 // forge script DeployInterestRateModel -vvv

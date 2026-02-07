@@ -12,31 +12,28 @@ import { IsHealthy } from "@src/IsHealthy.sol";
 import { LendingPoolDeployer } from "@src/LendingPoolDeployer.sol";
 import { Protocol } from "@src/Protocol.sol";
 import { Oracle } from "@src/Oracle.sol";
-// import { OFTadapter } from "@src/layerzero/OFTadapter.sol";
 import { OFTadapterUpgradeable } from "@src/layerzero/OFTadapterUpgradeable.sol";
-import { OFTKAIAadapter } from "@src/layerzero/OFTKAIAAdapter.sol";
-import { OFTUSDTadapter } from "@src/layerzero/OFTUSDTAdapter.sol";
+import { OFTUSDCadapter } from "@src/layerzero/OFTUSDCAdapter.sol";
+import { OFTEURCadapter } from "@src/layerzero/OFTEURCAdapter.sol";
 import { ElevatedMinterBurner } from "@src/layerzero/ElevatedMinterBurner.sol";
 import { HelperUtils } from "@src/HelperUtils.sol";
 import { PositionDeployer } from "@src/PositionDeployer.sol";
 import { LendingPoolRouterDeployer } from "@src/LendingPoolRouterDeployer.sol";
 import { TokenDataStream } from "@src/TokenDataStream.sol";
+import { Pricefeed } from "@src/Pricefeed.sol";
 import { InterestRateModel } from "@src/InterestRateModel.sol";
 import { ProxyDeployer } from "@src/ProxyDeployer.sol";
 import { SharesTokenDeployer } from "@src/SharesTokenDeployer.sol";
 import { NuroEmitter } from "@src/NuroEmitter.sol";
+import { OracleAdapter } from "@src/OracleAdapter.sol";
 // ======================= Helper =======================
 import { Helper } from "../DevTools/Helper.sol";
 // ======================= MockDex =======================
 import { MockDex } from "@src/MockDex/MockDex.sol";
 // ======================= MockToken =======================
-import { MOCKUSDT } from "@src/MockToken/MOCKUSDT.sol";
+import { MOCKEURC } from "@src/MockToken/MOCKEURC.sol";
 import { MOCKUSDC } from "@src/MockToken/MOCKUSDC.sol";
-import { MOCKWETH } from "@src/MockToken/MOCKWETH.sol";
-import { MOCKWBTC } from "@src/MockToken/MOCKWBTC.sol";
-import { MOCKWKAIA } from "@src/MockToken/MOCKWKAIA.sol";
-import { MOCKUSDM } from "@src/MockToken/MOCKUSDM.sol";
-import { MOCKBTCB } from "@src/MockToken/MOCKBTCB.sol";
+import { MOCKUSYC } from "@src/MockToken/MOCKUSYC.sol";
 // ======================= LayerZero =======================
 import { MyOApp } from "@src/layerzero/MyOApp.sol";
 import { ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
@@ -60,26 +57,23 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
     PositionDeployer public positionDeployer;
     LendingPoolFactory public lendingPoolFactory;
     Oracle public oracle;
-    // OFTadapter public oftadapter;
     OFTadapterUpgradeable public oftadapter;
-    OFTUSDTadapter public oftusdtadapter;
-    OFTKAIAadapter public oftkaiaadapter;
+    OFTEURCadapter public ofteurcadapter;
+    OFTUSDCadapter public oftusdcadapter;
     ElevatedMinterBurner public elevatedminterburner;
     HelperUtils public helperUtils;
     ERC1967Proxy public proxy;
     ProxyDeployer public proxyDeployer;
-    MOCKUSDT public mockUsdt;
+    MOCKEURC public mockEurc;
     MOCKUSDC public mockUsdc;
-    MOCKWETH public mockWeth;
-    MOCKWBTC public mockWbtc;
-    MOCKWKAIA public mockWkaia;
-    MOCKUSDM public mockUsdm;
-    MOCKBTCB public mockBtcB;
+    MOCKUSYC public mockUsyc;
     MockDex public mockDex;
     Orakl public mockOrakl;
     TokenDataStream public tokenDataStream;
     InterestRateModel public interestRateModel;
     SharesTokenDeployer public sharesTokenDeployer;
+    Pricefeed public priceFeed;
+    OracleAdapter public oracleAdapter;
     NuroEmitter public nuroEmitter;
 
     address public owner = vm.envAddress("PUBLIC_KEY");
@@ -103,6 +97,7 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
 
         // *****************************************
 
+        _deployPriceFeed(address(0), 0);
         _deployTokenDataStream();
         _setTokenDataStream(address(0), address(0));
         _deployInterestRateModel();
@@ -128,51 +123,21 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
 
     function _getUtils() internal override {
         super._getUtils();
-        // usdt = _deployMockToken("USDT");
-        // wNative = _deployMockToken("WKAIA");
-        // weth = _deployMockToken("WETH");
-        // dexRouter = _deployMockDex();
 
-        if (block.chainid == 1001) {
-            mockDex = MockDex(KAIA_TESTNET_MOCK_DEX);
-            tokenDataStream = TokenDataStream(KAIA_TESTNET_TOKEN_DATA_STREAM);
-            interestRateModel = InterestRateModel(KAIA_TESTNET_INTEREST_RATE_MODEL);
-            lendingPoolDeployer = LendingPoolDeployer(KAIA_TESTNET_LENDING_POOL_DEPLOYER);
-            lendingPoolRouterDeployer = LendingPoolRouterDeployer(KAIA_TESTNET_LENDING_POOL_ROUTER_DEPLOYER);
-            positionDeployer = PositionDeployer(KAIA_TESTNET_POSITION_DEPLOYER);
-            proxyDeployer = ProxyDeployer(KAIA_TESTNET_PROXY_DEPLOYER);
-            sharesTokenDeployer = SharesTokenDeployer(KAIA_TESTNET_SHARES_TOKEN_DEPLOYER);
-            isHealthy = IsHealthy(KAIA_TESTNET_IS_HEALTHY);
-            protocol = Protocol(payable(KAIA_TESTNET_PROTOCOL));
-            lendingPoolFactory = LendingPoolFactory(KAIA_TESTNET_LENDING_POOL_FACTORY);
-            nuroEmitter = NuroEmitter(KAIA_TESTNET_NURO_EMITTER);
-        } else if (block.chainid == 6343) {
-            mockDex;
-            tokenDataStream;
-            interestRateModel;
-            lendingPoolDeployer;
-            lendingPoolRouterDeployer;
-            positionDeployer;
-            proxyDeployer;
-            sharesTokenDeployer;
-            isHealthy;
-            protocol;
-            lendingPoolFactory;
-            nuroEmitter;
+        if (block.chainid == 5042002) {
+            mockDex = MockDex(ARC_TESTNET_MOCK_DEX);
+            tokenDataStream = TokenDataStream(ARC_TESTNET_TOKEN_DATA_STREAM);
+            interestRateModel = InterestRateModel(ARC_TESTNET_INTEREST_RATE_MODEL);
+            lendingPoolDeployer = LendingPoolDeployer(ARC_TESTNET_LENDING_POOL_DEPLOYER);
+            lendingPoolRouterDeployer = LendingPoolRouterDeployer(ARC_TESTNET_LENDING_POOL_ROUTER_DEPLOYER);
+            positionDeployer = PositionDeployer(ARC_TESTNET_POSITION_DEPLOYER);
+            proxyDeployer = ProxyDeployer(ARC_TESTNET_PROXY_DEPLOYER);
+            sharesTokenDeployer = SharesTokenDeployer(ARC_TESTNET_SHARES_TOKEN_DEPLOYER);
+            isHealthy = IsHealthy(ARC_TESTNET_IS_HEALTHY);
+            protocol = Protocol(payable(ARC_TESTNET_PROTOCOL));
+            lendingPoolFactory = LendingPoolFactory(ARC_TESTNET_LENDING_POOL_FACTORY);
+            nuroEmitter = NuroEmitter(ARC_TESTNET_NURO_EMITTER);
         } else if (block.chainid == 84532) {
-            mockDex;
-            tokenDataStream;
-            interestRateModel;
-            lendingPoolDeployer;
-            lendingPoolRouterDeployer;
-            positionDeployer;
-            proxyDeployer;
-            sharesTokenDeployer;
-            isHealthy;
-            protocol;
-            lendingPoolFactory;
-            nuroEmitter;
-        } else if (block.chainid == 11155111) {
             mockDex;
             tokenDataStream;
             interestRateModel;
@@ -191,27 +156,15 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
     }
 
     function _deployMockToken(string memory _name) internal returns (address) {
-        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USDT"))) {
-            mockUsdt = new MOCKUSDT();
-            return address(mockUsdt);
+        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("EURC"))) {
+            mockEurc = new MOCKEURC();
+            return address(mockEurc);
         } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USDC"))) {
             mockUsdc = new MOCKUSDC();
             return address(mockUsdc);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("WETH"))) {
-            mockWeth = new MOCKWETH();
-            return address(mockWeth);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("WBTC"))) {
-            mockWbtc = new MOCKWBTC();
-            return address(mockWbtc);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("WKAIA"))) {
-            mockWkaia = new MOCKWKAIA();
-            return address(mockWkaia);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USDm"))) {
-            mockUsdm = new MOCKUSDM();
-            return address(mockUsdm);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("BTCB"))) {
-            mockBtcB = new MOCKBTCB();
-            return address(mockBtcB);
+        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USYC"))) {
+            mockUsyc = new MOCKUSYC();
+            return address(mockUsyc);
         }
 
         revert("Invalid token name");
@@ -223,12 +176,26 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
         return address(mockDex);
     }
 
+    function _deployPriceFeed(address _token, int256 _price) internal virtual returns (address) {
+        if (_token == BAND_USDC_USD) {
+            oracleAdapter = new OracleAdapter(BAND_USDC_USD);
+            string memory tokenTicker = IERC20Metadata(_token).symbol();
+            console.log("address public constant %s_%s_PRICE_FEED = %s;", chainName, tokenTicker, address(priceFeed));
+            return address(oracleAdapter);
+        } else {
+            priceFeed = new Pricefeed(_token);
+            priceFeed.setPrice(_price);
+            string memory tokenTicker = IERC20Metadata(_token).symbol();
+            console.log("address public constant %s_%s_PRICE_FEED = %s;", chainName, tokenTicker, address(priceFeed));
+            return address(priceFeed);
+        }
+    }
+
     function _deployOft(address _token) internal virtual {
         if (_token == address(0)) revert("address can't be zero");
         elevatedminterburner = new ElevatedMinterBurner(_token, owner);
         string memory tokenTicker = IERC20Metadata(_token).symbol();
         console.log("address public constant %s_%s_ELEVATED_MINTER_BURNER = %s;", chainName, tokenTicker, address(elevatedminterburner));
-        // oftadapter = new OFTadapter(_token, address(elevatedminterburner), endpoint, owner, _tokenDecimals(_token));
         OFTadapterUpgradeable oftadapterImpl = new OFTadapterUpgradeable(_token, endpoint);
         console.log("address public constant %s_%s_OFT_ADAPTER_IMPLEMENTATION = %s;", chainName, tokenTicker, address(oftadapterImpl));
         bytes memory data = abi.encodeWithSelector(oftadapterImpl.initialize.selector, owner, address(elevatedminterburner));
@@ -407,7 +374,6 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
     function _setFactoryConfig() internal virtual {
         IFactory(address(lendingPoolFactory)).setOperator(address(lendingPoolFactory), true);
         IFactory(address(lendingPoolFactory)).setTokenDataStream(address(tokenDataStream));
-        IFactory(address(lendingPoolFactory)).setWrappedNative(wNative);
         IFactory(address(lendingPoolFactory)).setInterestRateModel(address(interestRateModel));
     }
 
@@ -416,7 +382,8 @@ contract DeployCoreNuro is Script, SelectRpc, Helper {
     }
 
     function _setMockDexFactory() internal virtual {
-        if (address(mockDex) != address(0) && block.chainid == 1001) {
+        // Set factory on MockDex for testnet chains
+        if (address(mockDex) != address(0)) {
             mockDex.setFactory(address(lendingPoolFactory));
         }
     }

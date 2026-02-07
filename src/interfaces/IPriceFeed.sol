@@ -14,10 +14,15 @@ interface IPriceFeed {
      * @return roundId The round ID
      * @return priceAnswer The price value
      * @return updatedAt Timestamp when the price was last updated
+     * @return startedAt Timestamp when the round started
+     * @return answeredInRound The round ID in which the answer was computed
      * @notice This function provides the most recent price data
      * @custom:security Ensure the price feed is not stale before using the data
      */
-    function latestRoundData() external view returns (uint80 roundId, int256 priceAnswer, uint256 updatedAt);
+    function latestRoundData()
+        external
+        view
+        returns (uint80 roundId, int256 priceAnswer, uint256 updatedAt, uint256 startedAt, uint80 answeredInRound);
 
     /**
      * @dev Returns the number of decimals used by the price feed

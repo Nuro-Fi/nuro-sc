@@ -22,14 +22,18 @@ contract HelperUtils_GetFee is Script, Helper, SelectRpc {
     uint32 public dstEid = BASE_TESTNET_EID; // Destination endpoint ID
     uint128 public gasOption = 200_000; // LayerZero gas option
 
+    // Configurable address via environment variable
+    address public helperUtilsAddress = vm.envOr("HELPER_UTILS", address(0));
+
     function setUp() public {
         selectRpc();
     }
 
     function run() public view {
         require(lendingPool != address(0), "Lending pool address not set");
+        require(helperUtilsAddress != address(0), "HELPER_UTILS env not set");
 
-        HelperUtils helperUtils = HelperUtils(KAIA_TESTNET_HELPER_UTILS);
+        HelperUtils helperUtils = HelperUtils(helperUtilsAddress);
 
         bytes32 toAddress = bytes32(uint256(uint160(owner)));
 

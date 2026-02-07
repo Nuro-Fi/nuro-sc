@@ -17,6 +17,9 @@ contract HelperUtils_GetMaxBorrowAmount is Script, Helper, SelectRpc {
     address public lendingPool = 0x1cDbb68c15EF610d6350BC14387D56002f8827A6; // Replace with actual lending pool address
     address public user = 0x0EcE75f3C36f7Df2136Dac7633165DBff53dE3CD; // Replace with actual user address (or use owner)
 
+    // Configurable address via environment variable
+    address public helperUtilsAddress = vm.envOr("HELPER_UTILS", address(0));
+
     function setUp() public {
         selectRpc();
         if (user == address(0)) {
@@ -27,8 +30,9 @@ contract HelperUtils_GetMaxBorrowAmount is Script, Helper, SelectRpc {
     function run() public view {
         require(lendingPool != address(0), "Lending pool address not set");
         require(user != address(0), "User address not set");
+        require(helperUtilsAddress != address(0), "HELPER_UTILS env not set");
 
-        HelperUtils helperUtils = HelperUtils(KAIA_TESTNET_HELPER_UTILS);
+        HelperUtils helperUtils = HelperUtils(helperUtilsAddress);
 
         uint256 maxBorrowAmount = helperUtils.getMaxBorrowAmount(lendingPool, user);
 

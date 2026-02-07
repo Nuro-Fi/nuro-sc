@@ -14,7 +14,6 @@ contract DeployIsHealthy is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployIsHealthy --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployIsHealthy --broadcast -vvv --verify
 // forge script DeployIsHealthy --broadcast -vvv
 // forge script DeployIsHealthy -vvv

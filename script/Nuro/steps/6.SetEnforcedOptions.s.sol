@@ -9,16 +9,9 @@ contract SetEnforcedOptions is Script, DeployCoreNuro {
         vm.startBroadcast(privateKey);
         _getUtils();
 
-        // _setEnforcedOptions(ETH_TESTNET_USDM_OFT_ADAPTER);
-        // _setEnforcedOptions(MEGAETH_TESTNET_USDM_OFT_ADAPTER);
-        // _setEnforcedOptions(BASE_TESTNET_USDM_OFT_ADAPTER);
-
-        _setEnforcedOptions(KAIA_TESTNET_USDT_OFT_ADAPTER);
-        _setEnforcedOptions(KAIA_TESTNET_USDC_OFT_ADAPTER);
-        _setEnforcedOptions(KAIA_TESTNET_WETH_OFT_ADAPTER);
-        _setEnforcedOptions(KAIA_TESTNET_WKAIA_OFT_ADAPTER);
-        _setEnforcedOptions(KAIA_TESTNET_BTCB_OFT_ADAPTER);
-
+        _setEnforcedOptions(ARC_TESTNET_USDC_OFT_ADAPTER);
+        _setEnforcedOptions(ARC_TESTNET_USYC_OFT_ADAPTER);
+        _setEnforcedOptions(ARC_TESTNET_EURC_OFT_ADAPTER);
         vm.stopBroadcast();
     }
 }

@@ -12,8 +12,8 @@ import { IsHealthy } from "../src/IsHealthy.sol";
 import { LendingPoolDeployer } from "../src/LendingPoolDeployer.sol";
 import { Protocol } from "../src/Protocol.sol";
 import { Oracle } from "../src/Oracle.sol";
-import { OFTKAIAadapter } from "../src/layerzero/OFTKAIAAdapter.sol";
-import { OFTUSDTadapter } from "../src/layerzero/OFTUSDTAdapter.sol";
+import { OFTUSDCadapter } from "../src/layerzero/OFTUSDCAdapter.sol";
+import { OFTEURCadapter } from "../src/layerzero/OFTEURCAdapter.sol";
 import { ElevatedMinterBurner } from "../src/layerzero/ElevatedMinterBurner.sol";
 import { HelperUtils } from "../src/HelperUtils.sol";
 import { PositionDeployer } from "../src/PositionDeployer.sol";
@@ -30,9 +30,9 @@ import { LendingPoolFactoryHook } from "../src/lib/LendingPoolFactoryHook.sol";
 // ======================= MockDex =======================
 import { MockDex } from "../src/MockDex/MockDex.sol";
 // ======================= MockToken =======================
-import { MOCKUSDT } from "../src/MockToken/MOCKUSDT.sol";
-import { MOCKWKAIA } from "../src/MockToken/MOCKWKAIA.sol";
-import { MOCKWETH } from "../src/MockToken/MOCKWETH.sol";
+import { MOCKEURC } from "../src/MockToken/MOCKEURC.sol";
+import { MOCKUSDC } from "../src/MockToken/MOCKUSDC.sol";
+import { MOCKUSYC } from "../src/MockToken/MOCKUSYC.sol";
 // ======================= LayerZero =======================
 import { MyOApp } from "../src/layerzero/MyOApp.sol";
 import { ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
@@ -50,7 +50,8 @@ import { IFactory } from "../src/interfaces/IFactory.sol";
 import { IIsHealthy } from "../src/interfaces/IIsHealthy.sol";
 import { ITokenDataStream } from "../src/interfaces/ITokenDataStream.sol";
 import { SwapHook } from "../src/lib/SwapHook.sol";
-import { Orakl } from "../src/MockOrakl/Orakl.sol";
+import { Pricefeed } from "../src/Pricefeed.sol";
+import { OracleAdapter } from "../src/OracleAdapter.sol";
 
 // RUN
 // forge test --match-contract NuroTest -vvv
@@ -65,17 +66,18 @@ contract NuroTest is Test, Helper {
     LendingPoolFactory public lendingPoolFactory;
     LendingPoolFactory public newImplementation;
     Oracle public oracle;
-    OFTUSDTadapter public oftusdtadapter;
-    OFTKAIAadapter public oftkaiaadapter;
+    OFTEURCadapter public ofteurcadapter;
+    OFTUSDCadapter public oftusdcadapter;
     ElevatedMinterBurner public elevatedminterburner;
     HelperUtils public helperUtils;
     ERC1967Proxy public proxy;
     ProxyDeployer public proxyDeployer;
-    MOCKUSDT public mockUsdt;
-    MOCKWKAIA public mockWkaia;
-    MOCKWETH public mockWeth;
+    MOCKEURC public mockEurc;
+    MOCKUSDC public mockUsdc;
+    MOCKUSYC public mockUsyc;
     MockDex public mockDex;
-    Orakl public mockOrakl;
+    Pricefeed public priceFeed;
+    OracleAdapter public oracleAdapter;
     TokenDataStream public tokenDataStream;
     InterestRateModel public interestRateModel;
     SharesTokenDeployer public sharesTokenDeployer;
@@ -83,7 +85,6 @@ contract NuroTest is Test, Helper {
 
     address public lendingPool;
     address public lendingPool2;
-    address public lendingPool3;
 
     address public owner = makeAddr("owner");
     address public alice = makeAddr("alice");
@@ -96,36 +97,65 @@ contract NuroTest is Test, Helper {
     uint256 repayDebt;
 
     uint256 amountStartSupply1 = 1_000e6;
-    uint256 amountStartSupply2 = 1_000 ether;
+    uint256 amountStartSupply2 = 1_000e6;
     uint256 amountStartSupply3 = 1_000e6;
 
     function setUp() public {
-        // vm.createSelectFork(vm.rpcUrl("kaia_mainnet"));
+        // Select testnet fork - use Base testnet or local for Arc ecosystem testing
         // vm.createSelectFork(vm.rpcUrl("base_mainnet"));
-        vm.createSelectFork(vm.rpcUrl("kaia_testnet"));
+        // vm.createSelectFork(vm.rpcUrl("base_testnet"));
         // vm.createSelectFork(vm.rpcUrl("moonbeam_mainnet"));
+        vm.createSelectFork(vm.rpcUrl("arc_testnet"));
         vm.startPrank(owner);
 
         _getUtils();
-        deal(usdt, alice, 100_000e6);
-        deal(wNative, alice, 100_000 ether);
+        deal(usyc, alice, 100_000e6);
+        deal(usdc, alice, 100_000e6);
+        deal(eurc, alice, 100_000e6);
         vm.deal(alice, 100_000 ether);
 
-        deal(usdt, owner, 100_000e6);
-        deal(wNative, owner, 100_000 ether);
+        deal(usyc, owner, 100_000e6);
+        deal(usdc, owner, 100_000e6);
+        deal(eurc, owner, 100_000e6);
         vm.deal(owner, 100_000 ether);
         // *************** layerzero ***************
 
-        _deployOft();
-        _setLibraries();
-        _setSendConfig();
-        _setReceiveConfig();
-        _setPeers();
-        _setEnforcedOptions();
+        _deployOft(eurc);
+        oftEurcAdapter = oapp;
+        _deployOft(usdc);
+        oftUsdcAdapter = oapp;
+        _deployOft(usyc);
+        oftUsycAdapter = oapp;
+
+        _setLibraries(oftEurcAdapter);
+        _setLibraries(oftUsdcAdapter);
+        _setLibraries(oftUsycAdapter);
+
+        _setSendConfig(oftEurcAdapter);
+        _setSendConfig(oftUsdcAdapter);
+        _setSendConfig(oftUsycAdapter);
+
+        _setReceiveConfig(oftEurcAdapter);
+        _setReceiveConfig(oftUsdcAdapter);
+        _setReceiveConfig(oftUsycAdapter);
+
+        _setPeers(oftEurcAdapter, oftEurcAdapter);
+        _setPeers(oftUsdcAdapter, oftUsdcAdapter);
+        _setPeers(oftUsycAdapter, oftUsycAdapter);
+
+        _setEnforcedOptions(oftEurcAdapter);
+        _setEnforcedOptions(oftUsdcAdapter);
+        _setEnforcedOptions(oftUsycAdapter);
 
         // *****************************************
+        EURC_USD = _deployPriceFeed(eurc, 118000000);
+        USYC_USD = _deployPriceFeed(usyc, 111000000);
+        USDC_USD = _deployPriceFeed(usdc, 100000000);
 
         _deployTokenDataStream();
+        _setTokenDataStream(eurc, EURC_USD);
+        _setTokenDataStream(usyc, USYC_USD);
+        _setTokenDataStream(usdc, USDC_USD);
         _deployInterestRateModel();
         _deployDeployer();
         _deployIsHealthy();
@@ -137,13 +167,20 @@ contract NuroTest is Test, Helper {
         _setCoreFactoryConfig();
         _setSharesTokenDeployerConfig();
         _setFactoryConfig();
+        _setFactoryMinSupplyAmount(eurc, 1e6);
+        _setFactoryMinSupplyAmount(usyc, 0.1e6);
+        _setFactoryMinSupplyAmount(usdc, 0.1e6);
         _setMockDexFactory(); // Set factory address on MockDex after proxy is created
         _configIsHealthy();
         _setInterestRateModelToFactory();
-        _setInterestRateModelTokenReserveFactor();
+        _setInterestRateModelTokenReserveFactor(eurc, 10e16);
+        _setInterestRateModelTokenReserveFactor(usyc, 10e16);
+        _setInterestRateModelTokenReserveFactor(usdc, 10e16);
         _createLendingPool();
         helperUtils = new HelperUtils(address(lendingPoolFactory));
-        _setOftAddress();
+        _setOftAddress(usyc, oftUsycAdapter);
+        _setOftAddress(eurc, oftEurcAdapter);
+        _setOftAddress(usdc, oftUsdcAdapter);
 
         vm.stopPrank();
     }
@@ -157,21 +194,22 @@ contract NuroTest is Test, Helper {
 
     function _getUtils() internal override {
         super._getUtils();
-        usdt = _deployMockToken("USDT");
-        wNative = _deployMockToken("WKAIA");
+        eurc = _deployMockToken("EURC");
+        usdc = _deployMockToken("USDC");
+        usyc = _deployMockToken("USYC"); // Use USYC as collateral (yield-bearing)
         dexRouter = _deployMockDex();
     }
 
     function _deployMockToken(string memory _name) internal returns (address) {
-        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USDT"))) {
-            mockUsdt = new MOCKUSDT();
-            return address(mockUsdt);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("WKAIA"))) {
-            mockWkaia = new MOCKWKAIA();
-            return address(mockWkaia);
-        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("WETH"))) {
-            mockWeth = new MOCKWETH();
-            return address(mockWeth);
+        if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("EURC"))) {
+            mockEurc = new MOCKEURC();
+            return address(mockEurc);
+        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USDC"))) {
+            mockUsdc = new MOCKUSDC();
+            return address(mockUsdc);
+        } else if (keccak256(abi.encodePacked(_name)) == keccak256(abi.encodePacked("USYC"))) {
+            mockUsyc = new MOCKUSYC();
+            return address(mockUsyc);
         }
         revert("Invalid token name");
     }
@@ -181,47 +219,31 @@ contract NuroTest is Test, Helper {
         return address(mockDex);
     }
 
-    function _deployOft() internal {
-        elevatedminterburner = new ElevatedMinterBurner(usdt, owner);
-        oftusdtadapter = new OFTUSDTadapter(usdt, address(elevatedminterburner), endpoint, owner);
-        oftUsdtAdapter = address(oftusdtadapter);
-        oapp = address(oftusdtadapter);
+    function _deployOft(address _token) internal {
+        elevatedminterburner = new ElevatedMinterBurner(_token, owner);
+        if (_token == eurc) {
+            ofteurcadapter = new OFTEURCadapter(_token, address(elevatedminterburner), endpoint, owner);
+            oapp = address(ofteurcadapter);
+        } else {
+            oftusdcadapter = new OFTUSDCadapter(_token, address(elevatedminterburner), endpoint, owner);
+            oapp = address(oftusdcadapter);
+        }
         elevatedminterburner.setOperator(oapp, true);
-
-        elevatedminterburner = new ElevatedMinterBurner(wNative, owner);
-        oftkaiaadapter = new OFTKAIAadapter(wNative, address(elevatedminterburner), endpoint, owner);
-        oftNativeAdapter = address(oftkaiaadapter);
-        oapp2 = address(oftkaiaadapter);
-        elevatedminterburner.setOperator(oapp2, true);
-
-        elevatedminterburner = new ElevatedMinterBurner(wNative, owner);
-        oftkaiaadapter = new OFTKAIAadapter(wNative, address(elevatedminterburner), endpoint, owner);
-        oftNativeOriAdapter = address(oftkaiaadapter);
-        oapp3 = address(oftkaiaadapter);
-        elevatedminterburner.setOperator(oapp3, true);
     }
 
-    function _setLibraries() internal {
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp, eid0, sendLib);
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp, eid1, sendLib);
-        ILayerZeroEndpointV2(endpoint).setReceiveLibrary(oapp, srcEid, receiveLib, gracePeriod);
-
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp2, eid0, sendLib);
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp2, eid1, sendLib);
-        ILayerZeroEndpointV2(endpoint).setReceiveLibrary(oapp2, srcEid, receiveLib, gracePeriod);
-
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp3, eid0, sendLib);
-        ILayerZeroEndpointV2(endpoint).setSendLibrary(oapp3, eid1, sendLib);
-        ILayerZeroEndpointV2(endpoint).setReceiveLibrary(oapp3, srcEid, receiveLib, gracePeriod);
+    function _setLibraries(address _oapp) internal {
+        ILayerZeroEndpointV2(endpoint).setSendLibrary(_oapp, eid0, sendLib);
+        ILayerZeroEndpointV2(endpoint).setSendLibrary(_oapp, eid1, sendLib);
+        ILayerZeroEndpointV2(endpoint).setReceiveLibrary(_oapp, srcEid, receiveLib, gracePeriod);
     }
 
-    function _setSendConfig() internal {
+    function _setSendConfig(address _oapp) internal {
         UlnConfig memory uln = UlnConfig({
             confirmations: 15,
-            requiredDVNCount: block.chainid == 1001 ? 1 : 2,
+            requiredDVNCount: _getRequiredDvnCount(),
             optionalDVNCount: type(uint8).max,
             optionalDVNThreshold: 0,
-            requiredDVNs: _toDynamicArray([dvn1, dvn2]),
+            requiredDVNs: _toDynamicDvnArray([dvn1, dvn2]),
             optionalDVNs: new address[](0)
         });
 
@@ -234,18 +256,16 @@ contract NuroTest is Test, Helper {
         params[2] = SetConfigParam({ eid: eid1, configType: EXECUTOR_CONFIG_TYPE, config: encodedExec });
         params[3] = SetConfigParam({ eid: eid1, configType: ULN_CONFIG_TYPE, config: encodedUln });
 
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp, sendLib, params);
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp2, sendLib, params);
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp3, sendLib, params);
+        ILayerZeroEndpointV2(endpoint).setConfig(_oapp, sendLib, params);
     }
 
-    function _setReceiveConfig() internal {
+    function _setReceiveConfig(address _oapp) internal {
         UlnConfig memory uln = UlnConfig({
             confirmations: 15,
-            requiredDVNCount: block.chainid == 1001 ? 1 : 2,
+            requiredDVNCount: _getRequiredDvnCount(),
             optionalDVNCount: type(uint8).max,
             optionalDVNThreshold: 0,
-            requiredDVNs: _toDynamicArray([dvn1, dvn2]),
+            requiredDVNs: _toDynamicDvnArray([dvn1, dvn2]),
             optionalDVNs: new address[](0)
         });
         bytes memory encodedUln = abi.encode(uln);
@@ -253,40 +273,36 @@ contract NuroTest is Test, Helper {
         params[0] = SetConfigParam({ eid: eid0, configType: RECEIVE_CONFIG_TYPE, config: encodedUln });
         params[1] = SetConfigParam({ eid: eid1, configType: RECEIVE_CONFIG_TYPE, config: encodedUln });
 
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp, receiveLib, params);
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp2, receiveLib, params);
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp3, receiveLib, params);
+        ILayerZeroEndpointV2(endpoint).setConfig(_oapp, receiveLib, params);
     }
 
-    function _setPeers() internal {
-        bytes32 oftPeerSrc = bytes32(uint256(uint160(address(oapp)))); // oappSrc
-        bytes32 oftPeerDst = bytes32(uint256(uint160(address(oapp)))); // oappDst
-        OFTUSDTadapter(oapp).setPeer(eid0, oftPeerSrc);
-        OFTUSDTadapter(oapp).setPeer(eid1, oftPeerDst);
-
-        bytes32 oftPeerSrc2 = bytes32(uint256(uint160(address(oapp2)))); // oappSrc2
-        bytes32 oftPeerDst2 = bytes32(uint256(uint160(address(oapp2)))); // oappDst2
-        OFTKAIAadapter(oapp2).setPeer(eid0, oftPeerSrc2);
-        OFTKAIAadapter(oapp2).setPeer(eid1, oftPeerDst2);
-
-        bytes32 oftPeerSrc3 = bytes32(uint256(uint160(address(oapp3)))); // oappSrc3
-        bytes32 oftPeerDst3 = bytes32(uint256(uint160(address(oapp3)))); // oappDst3
-        OFTKAIAadapter(oapp3).setPeer(eid0, oftPeerSrc3);
-        OFTKAIAadapter(oapp3).setPeer(eid1, oftPeerDst3);
+    function _setPeers(address _oappSrc, address _oappDst) internal {
+        bytes32 oftPeerSrc = bytes32(uint256(uint160(_oappSrc)));
+        bytes32 oftPeerDst = bytes32(uint256(uint160(_oappDst)));
+        MyOApp(_oappSrc).setPeer(eid0, oftPeerSrc);
+        MyOApp(_oappSrc).setPeer(eid1, oftPeerDst);
     }
 
-    function _setEnforcedOptions() internal {
-        uint16 send = 1;
+    function _setEnforcedOptions(address _oapp) internal {
         bytes memory options1 = OptionsBuilder.newOptions().addExecutorLzReceiveOption(80000, 0);
         bytes memory options2 = OptionsBuilder.newOptions().addExecutorLzReceiveOption(100000, 0);
 
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](2);
-        enforcedOptions[0] = EnforcedOptionParam({ eid: eid0, msgType: send, options: options1 });
-        enforcedOptions[1] = EnforcedOptionParam({ eid: eid1, msgType: send, options: options2 });
+        enforcedOptions[0] = EnforcedOptionParam({ eid: eid0, msgType: SEND, options: options1 });
+        enforcedOptions[1] = EnforcedOptionParam({ eid: eid1, msgType: SEND, options: options2 });
 
-        MyOApp(oapp).setEnforcedOptions(enforcedOptions);
-        MyOApp(oapp2).setEnforcedOptions(enforcedOptions);
-        MyOApp(oapp3).setEnforcedOptions(enforcedOptions);
+        MyOApp(_oapp).setEnforcedOptions(enforcedOptions);
+    }
+
+    function _deployPriceFeed(address _token, int256 _price) internal returns (address) {
+        if (_token == BAND_USDC_USD) {
+            oracleAdapter = new OracleAdapter(BAND_USDC_USD);
+            return address(oracleAdapter);
+        } else {
+            priceFeed = new Pricefeed(_token);
+            priceFeed.setPrice(_price);
+            return address(priceFeed);
+        }
     }
 
     function _deployTokenDataStream() internal {
@@ -294,9 +310,10 @@ contract NuroTest is Test, Helper {
         bytes memory data = abi.encodeWithSelector(tokenDataStream.initialize.selector);
         proxy = new ERC1967Proxy(address(tokenDataStream), data);
         tokenDataStream = TokenDataStream(address(proxy));
-        tokenDataStream.setTokenPriceFeed(usdt, USDT_USD);
-        tokenDataStream.setTokenPriceFeed(wNative, NATIVE_USDT);
-        tokenDataStream.setTokenPriceFeed(native, NATIVE_USDT);
+    }
+
+    function _setTokenDataStream(address _token, address _oracle) internal {
+        tokenDataStream.setTokenPriceFeed(_token, _oracle);
     }
 
     function _deployDeployer() internal {
@@ -362,18 +379,18 @@ contract NuroTest is Test, Helper {
     function _setFactoryConfig() internal {
         IFactory(address(lendingPoolFactory)).setOperator(address(lendingPoolFactory), true);
         IFactory(address(lendingPoolFactory)).setTokenDataStream(address(tokenDataStream));
-        IFactory(address(lendingPoolFactory)).setWrappedNative(wNative);
+        IFactory(address(lendingPoolFactory)).setWrappedNative(makeAddr("wrappedNative"));
         IFactory(address(lendingPoolFactory)).setInterestRateModel(address(interestRateModel));
+    }
 
-        IFactory(address(lendingPoolFactory)).setMinAmountSupplyLiquidity(usdt, 1e6);
-        IFactory(address(lendingPoolFactory)).setMinAmountSupplyLiquidity(wNative, 0.1 ether);
-        IFactory(address(lendingPoolFactory)).setMinAmountSupplyLiquidity(native, 0.1 ether);
+    function _setFactoryMinSupplyAmount(address _token, uint256 _amount) internal {
+        IFactory(address(lendingPoolFactory)).setMinAmountSupplyLiquidity(_token, _amount);
     }
 
     function _setMockDexFactory() internal {
         // Set the factory address on MockDex after proxy is created
         // This is needed because MockDex is created before the factory proxy in _getUtils()
-        if (address(mockDex) != address(0) && block.chainid == 1001) {
+        if (address(mockDex) != address(0)) {
             mockDex.setFactory(address(lendingPoolFactory));
         }
     }
@@ -382,10 +399,8 @@ contract NuroTest is Test, Helper {
         interestRateModel.grantRole(OWNER_ROLE, address(lendingPoolFactory));
     }
 
-    function _setInterestRateModelTokenReserveFactor() internal {
-        interestRateModel.setTokenReserveFactor(usdt, 10e16);
-        interestRateModel.setTokenReserveFactor(wNative, 10e16);
-        interestRateModel.setTokenReserveFactor(native, 10e16);
+    function _setInterestRateModelTokenReserveFactor(address _token, uint256 _reserveFactor) internal {
+        interestRateModel.setTokenReserveFactor(_token, _reserveFactor);
     }
 
     function _configIsHealthy() internal {
@@ -394,8 +409,8 @@ contract NuroTest is Test, Helper {
 
     function _createLendingPool() internal {
         LendingPoolFactoryHook.LendingPoolParams memory lendingPoolParams1 = LendingPoolFactoryHook.LendingPoolParams({
-            collateralToken: wNative,
-            borrowToken: usdt,
+            collateralToken: usyc,
+            borrowToken: eurc,
             ltv: 60e16,
             supplyLiquidity: amountStartSupply1,
             baseRate: 0.05e16,
@@ -407,12 +422,12 @@ contract NuroTest is Test, Helper {
             liquidationBonus: 5e16
         });
 
-        IERC20(usdt).approve(address(lendingPoolFactory), amountStartSupply1);
+        IERC20(eurc).approve(address(lendingPoolFactory), amountStartSupply1);
         lendingPool = IFactory(address(lendingPoolFactory)).createLendingPool(lendingPoolParams1);
 
         LendingPoolFactoryHook.LendingPoolParams memory lendingPoolParams2 = LendingPoolFactoryHook.LendingPoolParams({
-            collateralToken: usdt,
-            borrowToken: wNative,
+            collateralToken: usyc,
+            borrowToken: usdc,
             ltv: 8e17,
             supplyLiquidity: amountStartSupply2,
             baseRate: 0.05e16,
@@ -423,34 +438,16 @@ contract NuroTest is Test, Helper {
             liquidationThreshold: 85e16,
             liquidationBonus: 5e16
         });
-        IERC20(wNative).approve(address(lendingPoolFactory), amountStartSupply2);
+        IERC20(usdc).approve(address(lendingPoolFactory), amountStartSupply2);
         lendingPool2 = IFactory(address(lendingPoolFactory)).createLendingPool(lendingPoolParams2);
-
-        LendingPoolFactoryHook.LendingPoolParams memory lendingPoolParams3 = LendingPoolFactoryHook.LendingPoolParams({
-            collateralToken: native,
-            borrowToken: usdt,
-            ltv: 8e17,
-            supplyLiquidity: amountStartSupply3,
-            baseRate: 0.05e16,
-            rateAtOptimal: 80e16,
-            optimalUtilization: 60e16,
-            maxUtilization: 6e16,
-            maxRate: 20e16,
-            liquidationThreshold: 85e16,
-            liquidationBonus: 5e16
-        });
-        IERC20(usdt).approve(address(lendingPoolFactory), amountStartSupply3);
-        lendingPool3 = IFactory(address(lendingPoolFactory)).createLendingPool(lendingPoolParams3);
     }
 
     function _deployHelperUtils() internal {
         helperUtils = new HelperUtils(address(lendingPoolFactory));
     }
 
-    function _setOftAddress() internal {
-        IFactory(address(lendingPoolFactory)).setOftAddress(wNative, oftNativeAdapter);
-        IFactory(address(lendingPoolFactory)).setOftAddress(usdt, oftUsdtAdapter);
-        IFactory(address(lendingPoolFactory)).setOftAddress(native, oftNativeAdapter);
+    function _setOftAddress(address _token, address _oapp) internal {
+        IFactory(address(lendingPoolFactory)).setOftAddress(_token, _oapp);
     }
 
     // RUN
@@ -459,16 +456,16 @@ contract NuroTest is Test, Helper {
         address router = ILendingPool(lendingPool).router();
         assertEq(ILPRouter(router).lendingPool(), address(lendingPool));
         assertEq(ILPRouter(router).factory(), address(lendingPoolFactory));
-        assertEq(ILPRouter(router).collateralToken(), wNative);
-        assertEq(ILPRouter(router).borrowToken(), usdt);
+        assertEq(ILPRouter(router).collateralToken(), usyc);
+        assertEq(ILPRouter(router).borrowToken(), eurc);
         assertEq(ILPRouter(router).ltv(), 60e16);
     }
 
     // RUN
     // forge test --match-test test_oftaddress -vvv
     function test_oftaddress() public view {
-        assertEq(IFactory(address(lendingPoolFactory)).oftAddress(wNative), oftNativeAdapter);
-        assertEq(IFactory(address(lendingPoolFactory)).oftAddress(usdt), oftUsdtAdapter);
+        assertEq(IFactory(address(lendingPoolFactory)).oftAddress(usyc), oftUsycAdapter);
+        assertEq(IFactory(address(lendingPoolFactory)).oftAddress(eurc), oftEurcAdapter);
     }
 
     // RUN
@@ -497,12 +494,12 @@ contract NuroTest is Test, Helper {
     // forge test --match-test test_checkorakl -vvv
     function test_checkorakl() public view {
         address _tokenDataStream = IFactory(address(lendingPoolFactory)).tokenDataStream();
-        (, uint256 price,,,) = TokenDataStream(_tokenDataStream).latestRoundData(address(usdt));
-        console.log("usdt/USD price", price);
-        (, uint256 price2,,,) = TokenDataStream(_tokenDataStream).latestRoundData(wNative);
-        console.log("wNative/USD price", price2);
-        (, uint256 price3,,,) = TokenDataStream(_tokenDataStream).latestRoundData(native);
-        console.log("native/USD price", price3);
+        (, uint256 price,,,) = TokenDataStream(_tokenDataStream).latestRoundData(address(eurc));
+        console.log("eurc/USD price", price);
+        (, uint256 price2,,,) = TokenDataStream(_tokenDataStream).latestRoundData(usyc);
+        console.log("usyc/USD price", price2);
+        (, uint256 price3,,,) = TokenDataStream(_tokenDataStream).latestRoundData(usdc);
+        console.log("usdc/USD price", price3);
     }
 
     // RUN
@@ -510,17 +507,13 @@ contract NuroTest is Test, Helper {
     function test_supply_liquidity() public {
         vm.startPrank(alice);
 
-        // Supply 1000 usdt as liquidity
-        IERC20(usdt).approve(lendingPool, 1_000e6);
+        // Supply 1000 eurc as liquidity
+        IERC20(eurc).approve(lendingPool, 1_000e6);
         ILendingPool(lendingPool).supplyLiquidity(alice, 1_000e6);
 
-        // Supply 1000 wNative as liquidity
-        IERC20(wNative).approve(lendingPool2, 1_000 ether);
-        ILendingPool(lendingPool2).supplyLiquidity(alice, 1_000 ether);
-
-        // Supply 1000 usdt as liquidity (borrow token for lendingPool3)
-        IERC20(usdt).approve(lendingPool3, 1_000e6);
-        ILendingPool(lendingPool3).supplyLiquidity(alice, 1_000e6);
+        // Supply 1000 usdc as liquidity
+        IERC20(usdc).approve(lendingPool2, 1_000e6);
+        ILendingPool(lendingPool2).supplyLiquidity(alice, 1_000e6);
         vm.stopPrank();
 
         address router = ILendingPool(lendingPool).router();
@@ -531,9 +524,8 @@ contract NuroTest is Test, Helper {
         console.log("IERC20Metadata(sharesToken).name()", IERC20Metadata(sharesToken).name());
         console.log("IERC20(sharesToken).balanceOf(alice)", IERC20(sharesToken).balanceOf(alice));
         // Check balances
-        assertEq(IERC20(usdt).balanceOf(lendingPool), 1_000e6 + amountStartSupply1);
-        assertEq(IERC20(wNative).balanceOf(lendingPool2), 1_000 ether + amountStartSupply2);
-        assertEq(IERC20(usdt).balanceOf(lendingPool3), 1_000e6 + amountStartSupply3);
+        assertEq(IERC20(eurc).balanceOf(lendingPool), 1_000e6 + amountStartSupply1);
+        assertEq(IERC20(usdc).balanceOf(lendingPool2), 1_000e6 + amountStartSupply2);
     }
 
     // RUN
@@ -545,20 +537,16 @@ contract NuroTest is Test, Helper {
         // Get shares token balance (18 decimals) to withdraw
         address sharesToken1 = _sharesToken(lendingPool);
         address sharesToken2 = _sharesToken(lendingPool2);
-        address sharesToken3 = _sharesToken(lendingPool3);
 
         uint256 aliceShares1 = IERC20(sharesToken1).balanceOf(alice);
         uint256 aliceShares2 = IERC20(sharesToken2).balanceOf(alice);
-        uint256 aliceShares3 = IERC20(sharesToken3).balanceOf(alice);
 
         ILendingPool(lendingPool).withdrawLiquidity(aliceShares1);
         ILendingPool(lendingPool2).withdrawLiquidity(aliceShares2);
-        ILendingPool(lendingPool3).withdrawLiquidity(aliceShares3);
         vm.stopPrank();
 
-        assertEq(IERC20(usdt).balanceOf(lendingPool), 0 + amountStartSupply1);
-        assertEq(IERC20(wNative).balanceOf(lendingPool2), 0 + amountStartSupply2);
-        assertEq(IERC20(usdt).balanceOf(lendingPool3), 0 + amountStartSupply3);
+        assertEq(IERC20(eurc).balanceOf(lendingPool), 0 + amountStartSupply1);
+        assertEq(IERC20(usdc).balanceOf(lendingPool2), 0 + amountStartSupply2);
     }
 
     // RUN
@@ -566,18 +554,15 @@ contract NuroTest is Test, Helper {
     function test_supply_collateral() public {
         vm.startPrank(alice);
 
-        IERC20(wNative).approve(lendingPool, 1000 ether);
-        ILendingPool(lendingPool).supplyCollateral(alice, 1000 ether);
+        IERC20(usyc).approve(lendingPool, 1000e6);
+        ILendingPool(lendingPool).supplyCollateral(alice, 1000e6);
 
-        IERC20(usdt).approve(lendingPool2, 1_000e6);
+        IERC20(usyc).approve(lendingPool2, 1_000e6);
         ILendingPool(lendingPool2).supplyCollateral(alice, 1_000e6);
-
-        ILendingPool(lendingPool3).supplyCollateral{ value: 1_000 ether }(alice, 1_000 ether);
         vm.stopPrank();
 
-        assertEq(IERC20(wNative).balanceOf(_addressPosition(lendingPool, alice)), 1000 ether);
-        assertEq(IERC20(usdt).balanceOf(_addressPosition(lendingPool2, alice)), 1_000e6);
-        assertEq(IERC20(wNative).balanceOf(_addressPosition(lendingPool3, alice)), 1000 ether);
+        assertEq(IERC20(usyc).balanceOf(_addressPosition(lendingPool, alice)), 1000e6);
+        assertEq(IERC20(usyc).balanceOf(_addressPosition(lendingPool2, alice)), 1_000e6);
     }
 
     // RUN
@@ -585,14 +570,12 @@ contract NuroTest is Test, Helper {
     function test_withdraw_collateral() public {
         test_supply_collateral();
         vm.startPrank(alice);
-        ILendingPool(lendingPool).withdrawCollateral(1_000 ether);
+        ILendingPool(lendingPool).withdrawCollateral(1_000e6);
         ILendingPool(lendingPool2).withdrawCollateral(1_000e6);
-        ILendingPool(lendingPool3).withdrawCollateral(1_000 ether);
         vm.stopPrank();
 
-        assertEq(IERC20(wNative).balanceOf(_addressPosition(lendingPool, alice)), 0);
-        assertEq(IERC20(usdt).balanceOf(_addressPosition(lendingPool2, alice)), 0);
-        assertEq(IERC20(wNative).balanceOf(_addressPosition(lendingPool3, alice)), 0);
+        assertEq(IERC20(usyc).balanceOf(_addressPosition(lendingPool, alice)), 0);
+        assertEq(IERC20(usyc).balanceOf(_addressPosition(lendingPool2, alice)), 0);
     }
 
     // RUN
@@ -605,22 +588,16 @@ contract NuroTest is Test, Helper {
         ILendingPool(lendingPool).borrowDebt(10e6);
         ILendingPool(lendingPool).borrowDebt(10e6);
 
-        ILendingPool(lendingPool2).borrowDebt(0.1 ether);
-        ILendingPool(lendingPool2).borrowDebt(0.1 ether);
-
-        ILendingPool(lendingPool3).borrowDebt(10e6);
-        ILendingPool(lendingPool3).borrowDebt(10e6);
+        ILendingPool(lendingPool2).borrowDebt(0.1e6);
+        ILendingPool(lendingPool2).borrowDebt(0.1e6);
         vm.stopPrank();
 
         assertEq(ILPRouter(_router(lendingPool)).userBorrowShares(alice), 2 * 10e6);
         assertEq(ILPRouter(_router(lendingPool)).totalBorrowAssets(), 2 * 10e6);
         assertEq(ILPRouter(_router(lendingPool)).totalBorrowShares(), 2 * 10e6);
-        assertEq(ILPRouter(_router(lendingPool2)).userBorrowShares(alice), 2 * 0.1 ether);
-        assertEq(ILPRouter(_router(lendingPool2)).totalBorrowAssets(), 2 * 0.1 ether);
-        assertEq(ILPRouter(_router(lendingPool2)).totalBorrowShares(), 2 * 0.1 ether);
-        assertEq(ILPRouter(_router(lendingPool3)).userBorrowShares(alice), 2 * 10e6);
-        assertEq(ILPRouter(_router(lendingPool3)).totalBorrowAssets(), 2 * 10e6);
-        assertEq(ILPRouter(_router(lendingPool3)).totalBorrowShares(), 2 * 10e6);
+        assertEq(ILPRouter(_router(lendingPool2)).userBorrowShares(alice), 2 * 0.1e6);
+        assertEq(ILPRouter(_router(lendingPool2)).totalBorrowAssets(), 2 * 0.1e6);
+        assertEq(ILPRouter(_router(lendingPool2)).totalBorrowShares(), 2 * 0.1e6);
     }
 
     // RUN
@@ -629,41 +606,29 @@ contract NuroTest is Test, Helper {
         test_borrow_debt();
 
         vm.startPrank(alice);
-        IERC20(usdt).approve(lendingPool, 10e6);
+        IERC20(eurc).approve(lendingPool, 10e6);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 10e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
-        IERC20(usdt).approve(lendingPool, 10e6);
+            .repayWithSelectedToken(RepayParams({ user: alice, token: eurc, shares: 10e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
+        IERC20(eurc).approve(lendingPool, 10e6);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 10e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
-        // For wNative repayment, send native native which gets auto-wrapped
-        IERC20(wNative).approve(lendingPool2, 0.1 ether);
+            .repayWithSelectedToken(RepayParams({ user: alice, token: eurc, shares: 10e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
+        // For usdc repayment on lendingPool2 (borrow token = usdc)
+        IERC20(usdc).approve(lendingPool2, 0.1e6);
         ILendingPool(lendingPool2)
-            .repayWithSelectedToken(
-                RepayParams({ user: alice, token: wNative, shares: 0.1 ether, amountOutMinimum: 500, fromPosition: false, fee: 1000 })
-            );
-        IERC20(wNative).approve(lendingPool2, 0.1 ether);
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usdc, shares: 0.1e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
+        IERC20(usdc).approve(lendingPool2, 0.1e6);
         ILendingPool(lendingPool2)
-            .repayWithSelectedToken(
-                RepayParams({ user: alice, token: wNative, shares: 0.1 ether, amountOutMinimum: 500, fromPosition: false, fee: 1000 })
-            );
-
-        IERC20(usdt).approve(lendingPool3, 10e6);
-        ILendingPool(lendingPool3)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 10e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
-        IERC20(usdt).approve(lendingPool3, 10e6);
-        ILendingPool(lendingPool3)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 10e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usdc, shares: 0.1e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
         vm.stopPrank();
 
         assertEq(ILPRouter(_router(lendingPool)).userBorrowShares(alice), 0);
         assertEq(ILPRouter(_router(lendingPool2)).userBorrowShares(alice), 0);
-        assertEq(ILPRouter(_router(lendingPool3)).userBorrowShares(alice), 0);
+
         assertEq(ILPRouter(_router(lendingPool)).totalBorrowAssets(), 0);
         assertEq(ILPRouter(_router(lendingPool2)).totalBorrowAssets(), 0);
-        assertEq(ILPRouter(_router(lendingPool3)).totalBorrowAssets(), 0);
+
         assertEq(ILPRouter(_router(lendingPool)).totalBorrowShares(), 0);
         assertEq(ILPRouter(_router(lendingPool2)).totalBorrowShares(), 0);
-        assertEq(ILPRouter(_router(lendingPool3)).totalBorrowShares(), 0);
     }
 
     // RUN
@@ -672,7 +637,7 @@ contract NuroTest is Test, Helper {
         test_supply_liquidity();
         test_supply_collateral();
 
-        // Provide enough ETH for LayerZero cross-chain fees
+        // Provide enough Gas for LayerZero cross-chain fees
         vm.deal(alice, 10 ether);
 
         vm.startPrank(alice);
@@ -687,7 +652,7 @@ contract NuroTest is Test, Helper {
         params.fee = fee; // Update params.fee with actual fee
         console.log("nativeFee", nativeFee);
         console.log("lzTokenFee", lzTokenFee);
-        console.log("alice native balance", alice.balance);
+        console.log("alice Gas balance", alice.balance);
         ILendingPool(lendingPool).borrowDebtCrossChain{ value: nativeFee }(params);
 
         vm.deal(alice, 15 ether);
@@ -702,7 +667,7 @@ contract NuroTest is Test, Helper {
         params.fee = fee; // Update params.fee with actual fee
         console.log("nativeFee", nativeFee);
         console.log("lzTokenFee", lzTokenFee);
-        console.log("alice native balance", alice.balance);
+        console.log("alice Gas balance", alice.balance);
         ILendingPool(lendingPool).borrowDebtCrossChain{ value: nativeFee }(params);
         vm.stopPrank();
 
@@ -715,13 +680,13 @@ contract NuroTest is Test, Helper {
     // forge test --match-test test_swap_collateral -vvv --match-contract NuroTest
     function test_swap_collateral() public {
         test_supply_collateral();
-        console.log("wNative balance before", IERC20(wNative).balanceOf(_addressPosition(lendingPool2, alice)));
+        console.log("usyc balance before", IERC20(usyc).balanceOf(_addressPosition(lendingPool2, alice)));
 
         vm.startPrank(alice);
-        ILendingPool(lendingPool2).swapTokenByPosition(SwapHook.SwapParams(usdt, wNative, 100e6, 100, 1000));
+        ILendingPool(lendingPool2).swapTokenByPosition(SwapHook.SwapParams(usyc, usdc, 100e6, 100, 1000));
         vm.stopPrank();
 
-        console.log("wNative balance after", IERC20(wNative).balanceOf(_addressPosition(lendingPool2, alice)));
+        console.log("usyc balance after", IERC20(usyc).balanceOf(_addressPosition(lendingPool2, alice)));
     }
 
     // RUN
@@ -746,29 +711,29 @@ contract NuroTest is Test, Helper {
         address position = _addressPosition(lendingPool, alice);
 
         vm.startPrank(alice);
-        console.log("Initial wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("Initial usdt in position:", IERC20(usdt).balanceOf(position));
-        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(wNative, usdt, 100 ether, 10000, 1000));
-        console.log("Final wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("Final usdt in position:", IERC20(usdt).balanceOf(position));
+        console.log("Initial usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("Initial eurc in position:", IERC20(eurc).balanceOf(position));
+        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(usyc, eurc, 100e6, 10000, 1000));
+        console.log("Final usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("Final eurc in position:", IERC20(eurc).balanceOf(position));
         vm.stopPrank();
 
         vm.startPrank(alice);
-        console.log("Before second swap - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("Before second swap - usdt:", IERC20(usdt).balanceOf(position));
-        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(usdt, wNative, 1e6, 10000, 1000));
-        console.log("After second swap - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After second swap - usdt:", IERC20(usdt).balanceOf(position));
+        console.log("Before second swap - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("Before second swap - eurc:", IERC20(eurc).balanceOf(position));
+        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(eurc, usyc, 1e6, 10000, 1000));
+        console.log("After second swap - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After second swap - eurc:", IERC20(eurc).balanceOf(position));
         vm.stopPrank();
 
         vm.startPrank(alice);
-        console.log("Before repayment - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("Before repayment - usdt:", IERC20(usdt).balanceOf(position));
-        IERC20(usdt).approve(lendingPool, 5e6);
+        console.log("Before repayment - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("Before repayment - eurc:", IERC20(eurc).balanceOf(position));
+        IERC20(eurc).approve(lendingPool, 5e6);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 5e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
-        console.log("After repayment - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After repayment - usdt:", IERC20(usdt).balanceOf(position));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: eurc, shares: 5e6, amountOutMinimum: 500, fromPosition: false, fee: 1000 }));
+        console.log("After repayment - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After repayment - eurc:", IERC20(eurc).balanceOf(position));
         vm.stopPrank();
 
         assertLt(ILPRouter(_router(lendingPool)).userBorrowShares(alice), 50e6);
@@ -791,14 +756,14 @@ contract NuroTest is Test, Helper {
 
         address position = _addressPosition(lendingPool, alice);
         vm.startPrank(alice);
-        console.log("Initial wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("Initial usdt in position:", IERC20(usdt).balanceOf(position));
+        console.log("Initial usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("Initial eurc in position:", IERC20(eurc).balanceOf(position));
         console.log("Initial borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
-        // Use 10e6 shares (USDT amount to repay) but token is wNative which needs 18-decimal compatible amount
+        // Repay 10e6 shares using usyc from position (swaps usyc→eurc via MockDex)
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: wNative, shares: 10e6, amountOutMinimum: 0, fromPosition: true, fee: 1000 }));
-        console.log("Final wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("Final usdt in position:", IERC20(usdt).balanceOf(position));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usyc, shares: 10e6, amountOutMinimum: 0, fromPosition: true, fee: 1000 }));
+        console.log("Final usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("Final eurc in position:", IERC20(eurc).balanceOf(position));
         console.log("Final borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         vm.stopPrank();
         assertLt(ILPRouter(_router(lendingPool)).userBorrowShares(alice), 20e6);
@@ -813,22 +778,22 @@ contract NuroTest is Test, Helper {
 
         vm.startPrank(alice);
 
-        uint256 swapAmount = 50 ether;
+        uint256 swapAmount = 50e6;
 
         console.log("Testing swap with 10000 slippage tolerance (100%)");
-        console.log("Initial wNative:", IERC20(wNative).balanceOf(position));
-        console.log("Initial usdt:", IERC20(usdt).balanceOf(position));
+        console.log("Initial usyc:", IERC20(usyc).balanceOf(position));
+        console.log("Initial eurc:", IERC20(eurc).balanceOf(position));
 
-        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(wNative, usdt, swapAmount, 10000, 1000));
+        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(usyc, eurc, swapAmount, 10000, 1000));
 
-        console.log("After swap wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After swap usdt:", IERC20(usdt).balanceOf(position));
+        console.log("After swap usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After swap eurc:", IERC20(eurc).balanceOf(position));
 
-        uint256 usdtAmount = 1e6;
-        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(usdt, wNative, usdtAmount, 10000, 1000));
+        uint256 eurcAmount = 1e6;
+        ILendingPool(lendingPool).swapTokenByPosition(SwapHook.SwapParams(eurc, usyc, eurcAmount, 10000, 1000));
 
-        console.log("After swap back wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After swap back usdt:", IERC20(usdt).balanceOf(position));
+        console.log("After swap back usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After swap back eurc:", IERC20(eurc).balanceOf(position));
 
         vm.stopPrank();
     }
@@ -847,20 +812,20 @@ contract NuroTest is Test, Helper {
         address position = _addressPosition(lendingPool, alice);
 
         vm.startPrank(alice);
-        console.log("Before swap - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("Before swap - usdt:", IERC20(usdt).balanceOf(position));
+        console.log("Before swap - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("Before swap - eurc:", IERC20(eurc).balanceOf(position));
         console.log("Before swap - borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         ILendingPool(lendingPool)
-            .swapTokenByPosition(SwapHook.SwapParams({ tokenIn: wNative, tokenOut: usdt, amountIn: 200 ether, amountOutMinimum: 0, fee: 1000 }));
-        console.log("After swap - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After swap - usdt:", IERC20(usdt).balanceOf(position));
+            .swapTokenByPosition(SwapHook.SwapParams({ tokenIn: usyc, tokenOut: eurc, amountIn: 200e6, amountOutMinimum: 0, fee: 1000 }));
+        console.log("After swap - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After swap - eurc:", IERC20(eurc).balanceOf(position));
         vm.stopPrank();
 
         vm.startPrank(alice);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: usdt, shares: 10e6, amountOutMinimum: 500, fromPosition: true, fee: 1000 }));
-        console.log("After repayment - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After repayment - usdt:", IERC20(usdt).balanceOf(position));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: eurc, shares: 10e6, amountOutMinimum: 500, fromPosition: true, fee: 1000 }));
+        console.log("After repayment - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After repayment - eurc:", IERC20(eurc).balanceOf(position));
         console.log("After repayment - borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         vm.stopPrank();
 
@@ -880,14 +845,14 @@ contract NuroTest is Test, Helper {
         address position = _addressPosition(lendingPool, alice);
 
         vm.startPrank(alice);
-        console.log("Before repayment - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("Before repayment - usdt:", IERC20(usdt).balanceOf(position));
+        console.log("Before repayment - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("Before repayment - eurc:", IERC20(eurc).balanceOf(position));
         console.log("Before repayment - borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
-        // Repay 10e6 shares using wNative from position - use amountOutMinimum: 0 since MockDex may return small amounts
+        // Repay 10e6 shares using usyc from position - use amountOutMinimum: 0 since MockDex may return small amounts
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: wNative, shares: 10e6, amountOutMinimum: 0, fromPosition: true, fee: 1000 }));
-        console.log("After repayment - wNative:", IERC20(wNative).balanceOf(position));
-        console.log("After repayment - usdt:", IERC20(usdt).balanceOf(position));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usyc, shares: 10e6, amountOutMinimum: 0, fromPosition: true, fee: 1000 }));
+        console.log("After repayment - usyc:", IERC20(usyc).balanceOf(position));
+        console.log("After repayment - eurc:", IERC20(eurc).balanceOf(position));
         console.log("After repayment - borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         vm.stopPrank();
         assertLt(ILPRouter(_router(lendingPool)).userBorrowShares(alice), 20e6);
@@ -907,29 +872,29 @@ contract NuroTest is Test, Helper {
 
         vm.startPrank(alice);
         console.log("Initial state:");
-        console.log("wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("usdt in position:", IERC20(usdt).balanceOf(position));
+        console.log("usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("eurc in position:", IERC20(eurc).balanceOf(position));
         console.log("Borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         console.log("Total borrow assets:", ILPRouter(_router(lendingPool)).totalBorrowAssets());
 
-        // Use 0.01 ether for wNative (18 decimals) approval and amountOutMinimum: 0 for MockDex compatibility
-        IERC20(wNative).approve(lendingPool, 0.01 ether);
+        // Approve enough USYC for the swap (repay 5 EURC worth of USYC)
+        IERC20(usyc).approve(lendingPool, 10e6);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: wNative, shares: 5e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usyc, shares: 5e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
 
         console.log("After first repayment:");
-        console.log("wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("usdt in position:", IERC20(usdt).balanceOf(position));
+        console.log("usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("eurc in position:", IERC20(eurc).balanceOf(position));
         console.log("Borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         console.log("Total borrow assets:", ILPRouter(_router(lendingPool)).totalBorrowAssets());
 
-        IERC20(wNative).approve(lendingPool, 0.01 ether);
+        IERC20(usyc).approve(lendingPool, 10e6);
         ILendingPool(lendingPool)
-            .repayWithSelectedToken(RepayParams({ user: alice, token: wNative, shares: 5e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
+            .repayWithSelectedToken(RepayParams({ user: alice, token: usyc, shares: 5e6, amountOutMinimum: 0, fromPosition: false, fee: 1000 }));
 
         console.log("After second repayment:");
-        console.log("wNative in position:", IERC20(wNative).balanceOf(position));
-        console.log("usdt in position:", IERC20(usdt).balanceOf(position));
+        console.log("usyc in position:", IERC20(usyc).balanceOf(position));
+        console.log("eurc in position:", IERC20(eurc).balanceOf(position));
         console.log("Borrow shares:", ILPRouter(_router(lendingPool)).userBorrowShares(alice));
         console.log("Total borrow assets:", ILPRouter(_router(lendingPool)).totalBorrowAssets());
         vm.stopPrank();
@@ -948,9 +913,9 @@ contract NuroTest is Test, Helper {
         address router = _router(lendingPool);
         address borrowToken = ILPRouter(router).borrowToken();
         uint256 liquidationThreshold = isHealthy.liquidationThreshold(router);
-        uint256 borrowLimit = (1000 * helperTokenPrice(wNative) * 10 ** IERC20Metadata(borrowToken).decimals() * 1e18 / 1e8) / liquidationThreshold;
+        uint256 borrowLimit = (1000 * helperTokenPrice(usyc) * 10 ** IERC20Metadata(borrowToken).decimals() * 1e18 / 1e8) / liquidationThreshold;
 
-        console.log("_tokenPrice(wNative)", 1000 * helperTokenPrice(wNative) / 1e8);
+        console.log("_tokenPrice(usyc)", 1000 * helperTokenPrice(usyc) / 1e8);
         console.log("liquidationThreshold", liquidationThreshold);
         console.log("borrowLimit", borrowLimit);
 
@@ -969,16 +934,17 @@ contract NuroTest is Test, Helper {
         address router = _router(lendingPool);
         address borrowToken = ILPRouter(router).borrowToken();
         uint256 liquidationThreshold = isHealthy.liquidationThreshold(router);
-        uint256 borrowLimit = (1000 * helperTokenPrice(wNative) * 10 ** IERC20Metadata(borrowToken).decimals() * 1e18 / 1e8) / liquidationThreshold;
+        uint256 borrowLimit = (1000 * helperTokenPrice(usyc) * 10 ** IERC20Metadata(borrowToken).decimals() * 1e18 / 1e8) / liquidationThreshold;
 
-        console.log("_tokenPrice(wNative)", 1000 * helperTokenPrice(wNative) / 1e8);
+        console.log("_tokenPrice(usyc)", 1000 * helperTokenPrice(usyc) / 1e8);
         console.log("liquidationThreshold", liquidationThreshold);
         console.log("borrowLimit", borrowLimit);
 
         vm.startPrank(alice);
-        // Expect ExceedsMaxLTV error because 65 USDT exceeds the 60% LTV limit
+        // Expect ExceedsMaxLTV error because 570 EURC exceeds the 60% LTV limit
+        // 1000 USYC at $1.11 = $1110 collateral, LTV 60% = $666 max, EURC at $1.18 = ~564 EURC max
         vm.expectRevert(); // Will revert with ExceedsMaxLTV
-        ILendingPool(lendingPool).borrowDebt(37e6);
+        ILendingPool(lendingPool).borrowDebt(570e6);
         vm.stopPrank();
     }
 
@@ -989,8 +955,9 @@ contract NuroTest is Test, Helper {
         test_supply_collateral();
 
         vm.startPrank(alice);
+        // 1000 USYC at $1.11 = $1110, liquidation threshold 85% = $943.5, EURC at $1.18 = ~800 max
         vm.expectRevert(); // Will revert with ExceedsMaxLTV since we check LTV first
-        ILendingPool(lendingPool).borrowDebt(45e6);
+        ILendingPool(lendingPool).borrowDebt(810e6);
         vm.stopPrank();
     }
 
@@ -1015,17 +982,17 @@ contract NuroTest is Test, Helper {
 
         _deployMockOrakl();
 
-        address borrowToken = address(usdt);
-        address collateralToken = address(wNative);
+        address borrowToken = address(eurc);
+        address collateralToken = address(usyc);
 
         uint256 protocolBorrowBefore = IERC20(borrowToken).balanceOf(address(protocol));
         uint256 protocolCollateralBefore = IERC20(collateralToken).balanceOf(address(protocol));
         console.log("protocolBorrowBefore", protocolBorrowBefore / 1e6);
-        console.log("protocolCollateralBefore", protocolCollateralBefore / 1e18);
+        console.log("protocolCollateralBefore", protocolCollateralBefore / 1e6);
         uint256 borrowBalanceBefore = IERC20(borrowToken).balanceOf(owner);
         uint256 collateralBalanceBefore = IERC20(collateralToken).balanceOf(owner);
-        console.log("balance borrowToken before", borrowBalanceBefore / 1e6);
-        console.log("balance collateralToken before", collateralBalanceBefore / 1e18);
+        console.log("balance eurc before", borrowBalanceBefore / 1e6);
+        console.log("balance usyc before", collateralBalanceBefore / 1e6);
 
         vm.startPrank(owner);
         IERC20(borrowToken).approve(lendingPool, 9e6);
@@ -1035,32 +1002,20 @@ contract NuroTest is Test, Helper {
         uint256 protocolBorrowAfter = IERC20(borrowToken).balanceOf(address(protocol));
         uint256 protocolCollateralAfter = IERC20(collateralToken).balanceOf(address(protocol));
         console.log("protocolBorrowAfter", protocolBorrowAfter / 1e6);
-        console.log("protocolCollateralAfter", protocolCollateralAfter / 1e18);
+        console.log("protocolCollateralAfter", protocolCollateralAfter / 1e6);
         uint256 borrowBalanceAfter = IERC20(borrowToken).balanceOf(owner);
         uint256 collateralBalanceAfter = IERC20(collateralToken).balanceOf(owner);
-        console.log("balance borrowToken after", borrowBalanceAfter / 1e6);
-        console.log("balance collateralToken after", collateralBalanceAfter / 1e18);
-        console.log("gap after - before", (collateralBalanceAfter - collateralBalanceBefore) / 1e18);
-    }
-
-    function _toDynamicArray(address[2] memory fixedArray) internal view returns (address[] memory) {
-        if (block.chainid == 1001) {
-            address[] memory dynamicArray = new address[](1);
-            dynamicArray[0] = fixedArray[0];
-            return dynamicArray;
-        } else {
-            address[] memory dynamicArray = new address[](2);
-            dynamicArray[0] = fixedArray[0];
-            dynamicArray[1] = fixedArray[1];
-            return dynamicArray;
-        }
+        console.log("balance eurc after", borrowBalanceAfter / 1e6);
+        console.log("balance usyc after", collateralBalanceAfter / 1e6);
+        console.log("usyc gap after - before", (collateralBalanceAfter - collateralBalanceBefore) / 1e6);
     }
 
     function _deployMockOrakl() internal {
         vm.startPrank(owner);
-        mockOrakl = new Orakl(address(wNative));
-        mockOrakl.setPrice(1 * 1e6);
-        tokenDataStream.setTokenPriceFeed(address(wNative), address(mockOrakl));
+        // Crash USYC price to make position liquidatable
+        Pricefeed crashPriceFeed = new Pricefeed(usyc);
+        crashPriceFeed.setPrice(1000000); // $0.01 USD - very low price
+        tokenDataStream.setTokenPriceFeed(usyc, address(crashPriceFeed));
         vm.stopPrank();
     }
 

@@ -4,7 +4,7 @@ pragma solidity ^0.8.30;
 /**
  * @title IOrakl
  * @notice Interface for Orakl Network price oracle
- * @dev Defines functions for accessing price feed data from Orakl Network on Klaytn/KAIA
+ * @dev Defines functions for accessing price feed data from oracle network on Arc
  */
 interface IOrakl {
     /**

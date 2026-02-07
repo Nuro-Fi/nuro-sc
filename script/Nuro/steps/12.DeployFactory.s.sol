@@ -14,7 +14,6 @@ contract DeployFactory is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployFactory --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployFactory --broadcast -vvv --verify
 // forge script DeployFactory --broadcast -vvv
 // forge script DeployFactory -vvv

@@ -14,7 +14,6 @@ contract DeployHelperUtils is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployHelperUtils --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployHelperUtils --broadcast -vvv --verify
 // forge script DeployHelperUtils --broadcast -vvv
 // forge script DeployHelperUtils -vvv

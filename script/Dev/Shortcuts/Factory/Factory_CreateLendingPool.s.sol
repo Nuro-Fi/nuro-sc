@@ -5,30 +5,39 @@ import { Script } from "forge-std/Script.sol";
 import { LendingPoolFactory } from "@src/LendingPoolFactory.sol";
 import { LendingPoolFactoryHook } from "@src/lib/LendingPoolFactoryHook.sol";
 import { Helper } from "@script/DevTools/Helper.sol";
-import { MOCKUSDT } from "@src/MockToken/MOCKUSDT.sol";
+import { MOCKEURC } from "@src/MockToken/MOCKEURC.sol";
 import { SelectRpc } from "@script/DevTools/SelectRpc.sol";
 
 contract Factory_CreateLendingPool is Script, Helper, SelectRpc {
     LendingPoolFactory public factory;
-    MOCKUSDT public mockUsdt;
+    MOCKEURC public mockUsdt;
 
     address public owner = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
+
+    // Configurable addresses via environment variables
+    address public mockUsdtAddress = vm.envOr("MOCK_USDT", address(0));
+    address public mockWethAddress = vm.envOr("MOCK_WETH", address(0));
+    address public factoryAddress = vm.envOr("LENDING_POOL_FACTORY", address(0));
 
     function setUp() public {
         selectRpc();
     }
 
     function run() public {
-        mockUsdt = MOCKUSDT(KAIA_TESTNET_MOCK_USDT);
-        factory = LendingPoolFactory(payable(KAIA_TESTNET_LENDING_POOL_FACTORY));
+        require(mockUsdtAddress != address(0), "MOCK_USDT env not set");
+        require(mockWethAddress != address(0), "MOCK_WETH env not set");
+        require(factoryAddress != address(0), "LENDING_POOL_FACTORY env not set");
+
+        mockUsdt = MOCKEURC(mockUsdtAddress);
+        factory = LendingPoolFactory(payable(factoryAddress));
 
         vm.startBroadcast(privateKey);
         mockUsdt.mint(owner, 1e6);
         mockUsdt.approve(address(factory), 1e6);
         LendingPoolFactoryHook.LendingPoolParams memory lendingPoolParams = LendingPoolFactoryHook.LendingPoolParams({
-            collateralToken: KAIA_TESTNET_MOCK_WETH,
-            borrowToken: KAIA_TESTNET_MOCK_USDT,
+            collateralToken: mockWethAddress,
+            borrowToken: mockUsdtAddress,
             ltv: 70e16,
             supplyLiquidity: 1e6,
             baseRate: 0.05e16,

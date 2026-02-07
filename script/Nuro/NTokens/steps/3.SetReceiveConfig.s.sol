@@ -8,12 +8,9 @@ contract SetReceiveConfig is DeployNTokens {
         vm.startBroadcast(privateKey);
         _getUtils();
 
-        // Update with the OApp address - use address(0) to use the default oapp from Helper
         _setReceiveConfig(BASE_TESTNET_NUSDC_OFT_ADAPTER);
-        _setReceiveConfig(BASE_TESTNET_NUSDT_OFT_ADAPTER);
-        _setReceiveConfig(BASE_TESTNET_NWETH_OFT_ADAPTER);
-        _setReceiveConfig(BASE_TESTNET_NBTCB_OFT_ADAPTER);
-        _setReceiveConfig(BASE_TESTNET_NWKAIA_OFT_ADAPTER);
+        _setReceiveConfig(BASE_TESTNET_NUSYC_OFT_ADAPTER);
+        _setReceiveConfig(BASE_TESTNET_NEURC_OFT_ADAPTER);
 
         vm.stopBroadcast();
     }

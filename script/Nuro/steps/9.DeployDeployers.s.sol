@@ -14,7 +14,6 @@ contract DeployDeployers is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployDeployers --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployDeployers --broadcast -vvv --verify
 // forge script DeployDeployers --broadcast -vvv
 // forge script DeployDeployers -vvv

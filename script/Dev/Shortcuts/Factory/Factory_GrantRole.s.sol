@@ -12,12 +12,16 @@ contract Factory_GrantRole is Script, Helper, SelectRpc {
     address public owner = vm.envAddress("PUBLIC_KEY");
     uint256 public privateKey = vm.envUint("PRIVATE_KEY");
 
+    // Configurable address via environment variable
+    address public factoryAddress = vm.envOr("LENDING_POOL_FACTORY", address(0));
+
     function setUp() public {
         selectRpc();
     }
 
     function run() public {
-        factory = LendingPoolFactory(payable(KAIA_TESTNET_LENDING_POOL_FACTORY));
+        require(factoryAddress != address(0), "LENDING_POOL_FACTORY env not set");
+        factory = LendingPoolFactory(payable(factoryAddress));
 
         vm.startBroadcast(privateKey);
         factory.grantRole(DEFAULT_ADMIN_ROLE, owner);

@@ -9,20 +9,16 @@ contract DeployOft is DeployNTokens {
         _getUtils();
 
         // Deploy OFT Adapter - Update with the token address
-        // Example: _deployOft(MEGAETH_TESTNET_NUSDT);
-        _deployOft(BASE_TESTNET_NUSDT);
         _deployOft(BASE_TESTNET_NUSDC);
-        _deployOft(BASE_TESTNET_NWETH);
-        _deployOft(BASE_TESTNET_NBTCB);
-        _deployOft(BASE_TESTNET_NWKAIA);
+        _deployOft(BASE_TESTNET_NUSYC);
+        _deployOft(BASE_TESTNET_NEURC);
 
         vm.stopBroadcast();
     }
 }
 
 // RUN
-// forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft --broadcast -vvv --verify
 // forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft --broadcast -vvv --verify --verifier etherscan --etherscan-api-key $ETHERSCAN_API_KEY
-// forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft --broadcast -vvv --skip-simulation --verify --verifier blockscout --verifier-url https://megaeth-testnet-v2.blockscout.com/api/
+// forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft --broadcast -vvv --verify
 // forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft --broadcast -vvv
 // forge script script/Nuro/NTokens/steps/0.1.DeployOft.s.sol:DeployOft -vvv

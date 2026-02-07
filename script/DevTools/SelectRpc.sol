@@ -7,7 +7,8 @@ contract SelectRpc is Script {
     function selectRpc() public {
         // vm.createSelectFork(vm.rpcUrl("megaeth_testnet"));
         // vm.createSelectFork(vm.rpcUrl("eth_testnet"));
-        vm.createSelectFork(vm.rpcUrl("kaia_testnet"));
+        // vm.createSelectFork(vm.rpcUrl("kaia_testnet"));
+        vm.createSelectFork(vm.rpcUrl("arc_testnet"));
     }
 
     function selectDstRpc() public {

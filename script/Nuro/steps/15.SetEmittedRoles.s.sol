@@ -14,7 +14,6 @@ contract SetEmittedRoles is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script SetEmittedRoles --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script SetEmittedRoles --broadcast -vvv --verify
 // forge script SetEmittedRoles --broadcast -vvv
 // forge script SetEmittedRoles -vvv

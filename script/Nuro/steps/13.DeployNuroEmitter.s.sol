@@ -14,7 +14,6 @@ contract DeployNuroEmitter is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployNuroEmitter --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployNuroEmitter --broadcast -vvv --verify
 // forge script DeployNuroEmitter --broadcast -vvv
 // forge script DeployNuroEmitter -vvv

@@ -14,7 +14,6 @@ contract SetSharesTokenDeployerConfig is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script SetSharesTokenDeployerConfig --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script SetSharesTokenDeployerConfig --broadcast -vvv --verify
 // forge script SetSharesTokenDeployerConfig --broadcast -vvv
 // forge script SetSharesTokenDeployerConfig -vvv

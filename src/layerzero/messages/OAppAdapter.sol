@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 
 import { OFTAdapter } from "@layerzerolabs/oft-evm/contracts/OFTAdapter.sol";
-import { OAppSupplyLiquidityUSDT } from "./OAppSupplyLiquidityUSDT.sol";
+import { OAppSupplyLiquidityEURC } from "./OAppSupplyLiquidityEURC.sol";
 import { SendParam } from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import { OptionsBuilder } from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
 import { MessagingFee } from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
@@ -75,7 +75,7 @@ contract OAppAdapter is ReentrancyGuard {
     {
         (SendParam memory sendParam, MessagingFee memory fee) = _utils(_dstEid, _toAddress, _amount, _oft);
         OFTAdapter(_oft).send{ value: _oftFee }(sendParam, fee, _toAddress);
-        OAppSupplyLiquidityUSDT(_oapp).sendString{ value: _oappFee }(_dstEid, _lendingPoolDst, _toAddress, _tokenDst, _amount, _oappFee, "");
+        OAppSupplyLiquidityEURC(_oapp).sendString{ value: _oappFee }(_dstEid, _lendingPoolDst, _toAddress, _tokenDst, _amount, _oappFee, "");
         emit sendBridgeOApp(_oapp, _oft, _lendingPoolDst, _tokenSrc, _tokenDst, _toAddress, _dstEid, _amount, _oftFee, _oappFee);
     }
 

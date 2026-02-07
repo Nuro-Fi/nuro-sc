@@ -8,12 +8,9 @@ contract SetRoleNTokenToElevated is DeployNTokens {
         vm.startBroadcast(privateKey);
         _getUtils();
 
-        // Grant MINTER_ROLE to ElevatedMinterBurner contracts
         _setRoleNTokenToElevated(BASE_TESTNET_NUSDC, BASE_TESTNET_NUSDC_ELEVATED_MINTER_BURNER);
-        _setRoleNTokenToElevated(BASE_TESTNET_NUSDT, BASE_TESTNET_NUSDT_ELEVATED_MINTER_BURNER);
-        _setRoleNTokenToElevated(BASE_TESTNET_NWETH, BASE_TESTNET_NWETH_ELEVATED_MINTER_BURNER);
-        _setRoleNTokenToElevated(BASE_TESTNET_NBTCB, BASE_TESTNET_NBTCB_ELEVATED_MINTER_BURNER);
-        _setRoleNTokenToElevated(BASE_TESTNET_NWKAIA, BASE_TESTNET_NWKAIA_ELEVATED_MINTER_BURNER);
+        _setRoleNTokenToElevated(BASE_TESTNET_NUSYC, BASE_TESTNET_NUSYC_ELEVATED_MINTER_BURNER);
+        _setRoleNTokenToElevated(BASE_TESTNET_NEURC, BASE_TESTNET_NEURC_ELEVATED_MINTER_BURNER);
 
         vm.stopBroadcast();
     }

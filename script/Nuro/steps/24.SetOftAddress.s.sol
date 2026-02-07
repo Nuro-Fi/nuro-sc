@@ -8,17 +8,14 @@ contract SetOftAddress is Script, DeployCoreNuro {
     function run() public override {
         vm.startBroadcast(privateKey);
         _getUtils();
-        _setOftAddress(KAIA_TESTNET_MOCK_USDT, KAIA_TESTNET_USDT_OFT_ADAPTER);
-        _setOftAddress(KAIA_TESTNET_MOCK_USDC, KAIA_TESTNET_USDC_OFT_ADAPTER);
-        _setOftAddress(KAIA_TESTNET_MOCK_WETH, KAIA_TESTNET_WETH_OFT_ADAPTER);
-        _setOftAddress(KAIA_TESTNET_MOCK_BTCB, KAIA_TESTNET_BTCB_OFT_ADAPTER);
-        _setOftAddress(KAIA_TESTNET_MOCK_WKAIA, KAIA_TESTNET_WKAIA_OFT_ADAPTER);
+        _setOftAddress(ARC_TESTNET_MOCK_USDC, ARC_TESTNET_USDC_OFT_ADAPTER);
+        _setOftAddress(ARC_TESTNET_MOCK_USYC, ARC_TESTNET_USYC_OFT_ADAPTER);
+        _setOftAddress(ARC_TESTNET_MOCK_EURC, ARC_TESTNET_EURC_OFT_ADAPTER);
         vm.stopBroadcast();
     }
 }
 
 // RUN
-// forge script SetOftAddress --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script SetOftAddress --broadcast -vvv --verify
 // forge script SetOftAddress --broadcast -vvv
 // forge script SetOftAddress -vvv

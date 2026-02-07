@@ -9,10 +9,8 @@ contract SetSendConfig is DeployNTokens {
         _getUtils();
 
         _setSendConfig(BASE_TESTNET_NUSDC_OFT_ADAPTER);
-        _setSendConfig(BASE_TESTNET_NUSDT_OFT_ADAPTER);
-        _setSendConfig(BASE_TESTNET_NWETH_OFT_ADAPTER);
-        _setSendConfig(BASE_TESTNET_NBTCB_OFT_ADAPTER);
-        _setSendConfig(BASE_TESTNET_NWKAIA_OFT_ADAPTER);
+        _setSendConfig(BASE_TESTNET_NUSYC_OFT_ADAPTER);
+        _setSendConfig(BASE_TESTNET_NEURC_OFT_ADAPTER);
 
         vm.stopBroadcast();
     }

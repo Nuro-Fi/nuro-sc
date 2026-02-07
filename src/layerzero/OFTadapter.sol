@@ -12,7 +12,7 @@ import { ChainSettlement } from "./ChainSettlement.sol";
 /**
  * @title OFTadapter
  * @notice Generic LayerZero OFT Adapter for token cross-chain transfers with configurable decimals
- * @dev Enables bridging of tokens between chains with lock/unlock on source chain (8217) and mint/burn on destination chains
+ * @dev Enables bridging of tokens between chains with lock/unlock on Arc (hub chain) and mint/burn on spoke chains
  */
 contract OFTadapter is OFTAdapter, ReentrancyGuard, ChainSettlement {
     using SafeERC20 for IERC20;

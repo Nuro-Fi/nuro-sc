@@ -17,6 +17,9 @@ contract HelperUtils_GetExchangeRate is Script, Helper, SelectRpc {
     address public position = address(0); // Replace with actual position address
     uint256 public amountIn = 1e18; // Amount of input token (default 1 token with 18 decimals)
 
+    // Configurable address via environment variable
+    address public helperUtilsAddress = vm.envOr("HELPER_UTILS", address(0));
+
     function setUp() public {
         selectRpc();
     }
@@ -25,8 +28,9 @@ contract HelperUtils_GetExchangeRate is Script, Helper, SelectRpc {
         require(tokenIn != address(0), "TokenIn address not set");
         require(tokenOut != address(0), "TokenOut address not set");
         require(position != address(0), "Position address not set");
+        require(helperUtilsAddress != address(0), "HELPER_UTILS env not set");
 
-        HelperUtils helperUtils = HelperUtils(KAIA_TESTNET_HELPER_UTILS);
+        HelperUtils helperUtils = HelperUtils(helperUtilsAddress);
 
         uint256 exchangeRate = helperUtils.getExchangeRate(tokenIn, tokenOut, amountIn, position);
 

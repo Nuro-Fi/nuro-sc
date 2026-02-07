@@ -22,7 +22,7 @@ contract ProtocolV2 is ReentrancyGuard, Ownable {
 
     // ============ Constants ============
 
-    /// @notice Address of the Wrapped Native token contract (e.g., WKAIA)
+    /// @notice Address of the Wrapped Native token contract
     /// @dev Hardcoded to prevent manipulation of critical infrastructure address
     address public constant WRAPPED_NATIVE = 0x19Aac5f612f524B754CA7e7c41cbFa2E981A4432;
 

@@ -13,15 +13,19 @@ contract InterestRateModel_Upgrades is Script, Helper, SelectRpc {
     InterestRateModel public interestRateModel;
     InterestRateModel public newImplementation;
 
+    // Configurable address via environment variable
+    address public interestRateModelAddress = vm.envOr("INTEREST_RATE_MODEL", address(0));
+
     function setUp() public {
         selectRpc();
         _getUtils();
     }
 
     function run() public {
+        require(interestRateModelAddress != address(0), "INTEREST_RATE_MODEL env not set");
         vm.startBroadcast(privateKey);
         newImplementation = new InterestRateModel();
-        interestRateModel = InterestRateModel(payable(KAIA_TESTNET_INTEREST_RATE_MODEL));
+        interestRateModel = InterestRateModel(payable(interestRateModelAddress));
         interestRateModel.upgradeToAndCall(address(newImplementation), "");
 
         console.log("InterestRateModel Address: ", address(interestRateModel));

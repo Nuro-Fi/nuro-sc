@@ -14,7 +14,6 @@ contract DeployProtocol is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script DeployProtocol --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script DeployProtocol --broadcast -vvv --verify
 // forge script DeployProtocol --broadcast -vvv
 // forge script DeployProtocol -vvv

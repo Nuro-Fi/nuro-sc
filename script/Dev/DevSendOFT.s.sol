@@ -28,21 +28,19 @@ contract DevSendOFT is Script, Helper {
     // *********FILL THIS*********
     /// @notice Address of the OFT adapter contract on the source chain
     /// @dev This is the contract that wraps/adapts the source token for cross-chain transfer
-    // address oftAddress = MEGAETH_TESTNET_USDM_OFT_ADAPTER; // src
-    address oftAddress;
+    address oftAddress = ARC_TESTNET_USDC_OFT_ADAPTER;
 
     /// @notice Address of the source token contract on the origin chain
     /// @dev This is the actual ERC20 token being sent cross-chain
-    // address token = MEGAETH_TESTNET_MOCK_USDM;
-    address token;
+    address token = ARC_TESTNET_MOCK_USDC;
 
     /// @notice The base amount of tokens to send (in token's native decimals)
-    /// @dev Set to 1e6 for USDT (6 decimals)
-    uint256 amount;
+    /// @dev Set to 1e6 for USDC (6 decimals)
+    uint256 amount = 100e6;
 
     /// @notice The actual amount of tokens to send in the cross-chain transaction
     /// @dev Initialized to match the amount variable
-    uint256 tokensToSend;
+    uint256 tokensToSend = amount;
 
     /// @notice Private key for signing the transaction
     /// @dev Retrieved from the PRIVATE_KEY environment variable - handle with care
@@ -51,7 +49,7 @@ contract DevSendOFT is Script, Helper {
     //** DESTINATION
 
     /// @notice LayerZero endpoint ID for the destination chain
-    uint32 dstEid; // dst
+    uint32 dstEid = BASE_TESTNET_EID; // dst
 
     //*******
     //***************************
@@ -60,25 +58,12 @@ contract DevSendOFT is Script, Helper {
     // SETUP FUNCTION
     // ============================================
 
-    /// @notice Sets up the testing environment by forking the Kaia mainnet
-    /// @dev Creates and selects a fork of the Kaia mainnet to simulate the source chain environment.
-    ///      This allows testing cross-chain functionality in a controlled environment.
+    /// @notice Sets up the testing environment by forking the target testnet
+    /// @dev Creates and selects a fork of the source chain to simulate the cross-chain environment.
+    ///      Configure via environment variables: OFT_ADDRESS, TOKEN_ADDRESS, TOKENS_TO_SEND, DST_EID
     function setUp() public {
-        // vm.createSelectFork(vm.rpcUrl("eth_testnet"));
-        // vm.createSelectFork(vm.rpcUrl("megaeth_testnet"));
-        // vm.createSelectFork(vm.rpcUrl("base_testnet"));
-        // vm.createSelectFork(vm.rpcUrl("kaia_mainnet"));
-        vm.createSelectFork(vm.rpcUrl("kaia_testnet"));
-
-        oftAddress = KAIA_TESTNET_USDT_OFT_ADAPTER;
-
-        token = KAIA_TESTNET_MOCK_USDT;
-
-        tokensToSend = 1e6;
-
-        dstEid = BASE_TESTNET_EID;
-        // dstEid = ETH_TESTNET_EID;
-        // dstEid = MEGAETH_TESTNET_EID;
+        // Select fork for your source chain
+        vm.createSelectFork(vm.rpcUrl("arc_testnet"));
     }
 
     // ============================================

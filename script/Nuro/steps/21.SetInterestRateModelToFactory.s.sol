@@ -14,7 +14,6 @@ contract SetInterestRateModelToFactory is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script SetInterestRateModelToFactory --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script SetInterestRateModelToFactory --broadcast -vvv --verify
 // forge script SetInterestRateModelToFactory --broadcast -vvv
 // forge script SetInterestRateModelToFactory -vvv

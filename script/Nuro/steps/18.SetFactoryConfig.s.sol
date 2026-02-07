@@ -14,7 +14,6 @@ contract SetFactoryConfig is Script, DeployCoreNuro {
 }
 
 // RUN
-// forge script SetFactoryConfig --broadcast -vvv --verify --verifier oklink --verifier-url https://www.oklink.com/api/v5/explorer/contract/verify-source-code-plugin/kaia
 // forge script SetFactoryConfig --broadcast -vvv --verify
 // forge script SetFactoryConfig --broadcast -vvv
 // forge script SetFactoryConfig -vvv

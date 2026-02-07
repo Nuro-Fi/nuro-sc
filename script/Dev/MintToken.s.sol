@@ -36,13 +36,13 @@ contract MintToken is Script, Helper {
     address public minter = vm.envAddress("PUBLIC_KEY");
 
     /// @notice The address of the token contract to mint from
-    // address public token = MEGAETH_TESTNET_MOCK_USDM;
-    address public token = ETH_TESTNET_MOCK_USDM;
+    /// @dev Configure via TOKEN_ADDRESS environment variable
+    address public token = ARC_TESTNET_MOCK_USDC;
 
     /// @notice The amount of tokens to mint (in human-readable units)
     /// @dev This value will be multiplied by the token's decimals before minting
     ///      For example: 100_000 USDT = 100_000 * 10^6 = 100,000,000,000 smallest units
-    uint256 public amount = 100_000;
+    uint256 public amount = 100;
 
     /*//////////////////////////////////////////////////////////////
                             MAIN FUNCTIONS
@@ -57,10 +57,7 @@ contract MintToken is Script, Helper {
     ///      - Create a fork of Kaia or Base mainnet for testing
     ///      - Set the operator status before minting if required
     function run() public {
-        vm.createSelectFork(vm.rpcUrl("eth_testnet"));
-        // vm.createSelectFork(vm.rpcUrl("megaeth_testnet"));
-        // vm.createSelectFork(vm.rpcUrl("base_mainnet"));
-        // vm.createSelectFork(vm.rpcUrl("kaia_mainnet"));
+        vm.createSelectFork(vm.rpcUrl("arc_testnet"));
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
         IToken(token).mint(minter, amount * 10 ** IERC20Metadata(token).decimals());
         vm.stopBroadcast();
