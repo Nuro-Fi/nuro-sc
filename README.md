@@ -2,6 +2,13 @@
 
 > **Unified liquidity lending protocol powered by LayerZero OFT for seamless cross-chain borrowing**
 
+[![Website](https://img.shields.io/badge/Website-nurofi.xyz-blue)](https://www.nurofi.xyz/)
+[![Twitter](https://img.shields.io/badge/Twitter-@NuroFiLend-1DA1F2)](https://x.com/NuroFiLend)
+[![Docs](https://img.shields.io/badge/Docs-GitBook-green)](https://nuro-fi.gitbook.io/nuro-fi-docs/)
+[![GitHub](https://img.shields.io/badge/GitHub-Nuro--Fi-black)](https://github.com/Nuro-Fi)
+
+[Website](https://www.nurofi.xyz/) | [Documentation](https://nuro-fi.gitbook.io/nuro-fi-docs/) | [Twitter](https://x.com/NuroFiLend) | [GitHub](https://github.com/Nuro-Fi) | [Pitch Deck](https://www.canva.com/design/DAHArHlwbek/k1lcPouD2OZAmUVE0WOkAA/edit?utm_content=DAHArHlwbek&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton) | [Demo Video](https://www.youtube.com/watch?v=i7Sc11xb3C0)
+
 NuroFi is a multi-chain lending protocol that enables users to supply liquidity on one chain and borrow against collateral on another. Built on LayerZero's Omnichain Fungible Token (OFT) standard, NuroFi eliminates liquidity fragmentation across chains while maintaining capital efficiency.
 
 ## 🎯 Problem Statement
